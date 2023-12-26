@@ -1,9 +1,11 @@
 import {describe, it, expect} from 'vitest'
-import MC, {MultithreadingController} from '../dist/index.mjs'
+import  '../dist/index.mjs'
 
-describe('#Importing', () => {
-    it('Required properly', () => {
-        expect(MC).toBeInstanceOf(MultithreadingController)
+describe('#Functionality', () => {
+    const threads = new  Threads(100)
+
+    it('Constructing', () => {
+        expect(threads.threads.length).toEqual(navigator.hardwareConcurrency - 1 ?? 3)
     })
 })
 
