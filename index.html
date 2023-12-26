@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Vite App</title>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+    import "./dist/index.mjs"
+
+    const threads = new Threads(navigator.hardwareConcurrency)
+
+    function test1(message) {
+        let counter = message.data ?? 0
+        for (let i = 0; i < 100000000; i++) {
+            counter += i
+        }
+
+        postMessage(counter)
+    }
+
+
+    async function test2(counter = 0) {
+        return new Promise((resolve) => {
+            for (let i = 0; i < 100000000; i++) {
+                counter += i
+            }
+            resolve(counter)
+        })
+    }
+
+    threads
+        .push(test1, 0)
+        .push(test1, 0)
+        .push(test1, 0)
+        .push(test1, 0)
+        .push(test1, 0)
+        .push(test1, 0)
+        .push(test1, 0)
+
+    console.log('Threads are loaded:')
+    console.log(threads.threads)
+
+    console.time('With threads')
+    console.log(await threads.execute())
+    console.timeEnd('With threads')
+
+    console.time('Without threads')
+    await test2(0)
+    await test2(0)
+    await test2(0)
+    await test2(0)
+    await test2(0)
+    await test2(0)
+    await test2(0)
+    console.timeEnd('Without threads')
+
+
+</script>
+</body>
+</html>

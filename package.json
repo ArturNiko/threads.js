@@ -1,0 +1,49 @@
+{
+  "name": "@a4turp/multithreading",
+  "version": "1.0.0",
+  "author": "Artur Papikian",
+  "license": "MIT",
+  "description": "Light and easy web-tool for accessing multiple threads via web workers.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "comment//": "publish: pnpm build --onSuccess 'echo 1' for later automations...",
+  "scripts": {
+    "clear": "rm -rf ./dist",
+    "build": "pnpm clear && tsup src/index.ts --format cjs,esm --dts --clean",
+    "watch": "pnpm build --watch",
+    "test": "vitest run ./tests/module.test.mjs && jest ./tests/common.test.js",
+    "deploy": "npm publish"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ArturNiko/multithread-js.git"
+  },
+  "devDependencies": {
+    "@types/node": "^18.17.12",
+    "happy-dom": "^9.20.3",
+    "jest": "^29.6.4",
+    "jest-environment-jsdom": "^29.6.4",
+    "tsup": "^6.7.0",
+    "typescript": "^5.2.2",
+    "vite": "^4.4.9",
+    "vitest": "^0.30.1"
+  },
+  "keywords": [
+    "multithreading",
+    "multithread",
+    "multicore",
+    "workers",
+    "pools",
+    "typescript",
+    "ts",
+    "javascript",
+    "js"
+  ]
+}
