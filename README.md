@@ -14,7 +14,7 @@
 #### Threads object is getting passed to the window after importing it.
 
 ```javascript
-import '@a4turp/threads'
+import '@a4turp/threads.js'
 
 const threads = new Threads(navigator.hardwareConcurrency)
 ```

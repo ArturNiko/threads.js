@@ -1,6 +1,6 @@
 {
-  "name": "@a4turp/multithreading",
-  "version": "1.0.0",
+  "name": "@a4turp/threads.js",
+  "version": "1.0.1",
   "author": "Artur Papikian",
   "license": "MIT",
   "description": "Light and easy web-tool for accessing multiple threads via web workers.",
@@ -23,7 +23,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ArturNiko/multithread-js.git"
+    "url": "git+https://github.com/ArturNiko/threads.js.git"
   },
   "devDependencies": {
     "happy-dom": "^9.20.3",

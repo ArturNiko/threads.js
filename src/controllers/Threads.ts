@@ -13,6 +13,7 @@ enum Mode {
 
 interface ThreadsInterface {
     execute(index?: number): Promise<any>
+    push(task: Function, message: any): this
 
     get threads(): Thread[]
 }
@@ -46,8 +47,8 @@ export default class Threads implements ThreadsInterface {
         }
     }
 
-    push(method: Function, message: any): this {
-        const worker: Worker = this.#createWorker(method.toString())
+    push(task: Function, message: any): this {
+        const worker: Worker = this.#createWorker(task.toString())
         this.#sortPush(worker, message)
 
         return this
