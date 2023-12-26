@@ -1,5 +1,5 @@
 ## Lightweight JS tool for managing threads and concurrent task execution
-
+#### Migrated from `@a4turp/multithreading`
 <br>
 
 ### Installation
