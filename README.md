@@ -5,16 +5,14 @@
 ### Installation
 
 ```bash 
-    npm install --save @a4turp/threads
+    npm install --save @a4turp/threads.js
 ```
 
 
 ### Initialization
 
-#### Threads object is getting passed to the window after importing it.
-
 ```javascript
-import '@a4turp/threads.js'
+import Threads from '@a4turp/threads.js'
 
 const threads = new Threads(navigator.hardwareConcurrency)
 ```
