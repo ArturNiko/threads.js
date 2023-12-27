@@ -32,13 +32,14 @@ The sequence of running tasks on different threads is pretty straightforward.
     }
 
     /**
-    *   @param task: Function, message: any 
-    *   @return this
+     *  @param task: Function, message: any, index: number? //push a task into a specific thread
+     *  @return this
     */
     threads.push(test, 0).push(test, 0)
 
     /**
-    *   @return any[] // basically the value that has been passed into postMessage() method.
+     *  @param index: number? //tasks executon on specific thread, if nothing is passed, tasks will be executed on all threads.
+     *  @return any[] // basically the value that has been passed into postMessage() method.
     */
     let result = await threads.execute()
 ```
