@@ -13,9 +13,10 @@
     const threads = new Threads(navigator.hardwareConcurrency)
 
     function test1(message) {
+        let rand = Math.random()
         let counter = message.data ?? 0
         for (let i = 0; i < 100000000; i++) {
-            counter += i
+            counter += i * rand
         }
 
         postMessage(counter)
@@ -23,9 +24,10 @@
 
 
     async function test2(counter = 0) {
+        let rand = Math.random()
         return new Promise((resolve) => {
             for (let i = 0; i < 100000000; i++) {
-                counter += i
+                counter += i * rand
             }
             resolve(counter)
         })

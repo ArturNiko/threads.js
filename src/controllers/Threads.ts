@@ -22,12 +22,12 @@ export default class Threads implements ThreadsInterface {
     readonly #threadCount: number
     readonly #threads: Thread[] = []
 
-    #temporaryResponse: any = {}
-
 
     constructor(threadCount: number) {
         this.#threadCount = Math.min(threadCount, navigator.hardwareConcurrency ? navigator.hardwareConcurrency - 1 : 3)
-        this.#threads = [...Array(this.#threadCount)].map(() => []) // Create empty thread pool
+
+        // Create empty pools for each thread
+        this.#threads = [...Array(this.#threadCount)].map(() => [])
 
     }
 
@@ -47,9 +47,11 @@ export default class Threads implements ThreadsInterface {
         }
     }
 
-    push(task: Function, message: any): this {
+    push(task: Function, message: any, index?: number): this {
         const worker: Worker = this.#createWorker(task.toString())
-        this.#sortPush(worker, message)
+
+        if (index !== undefined) this.#threads[index].push({worker, message})
+        else this.#sortPush(worker, message)
 
         return this
     }
@@ -60,12 +62,13 @@ export default class Threads implements ThreadsInterface {
         // Create a promise for each worker in the thread
         for (const workerWrapper of thread) {
             await new Promise<void>((resolve) => {
-                workerWrapper.worker.postMessage(workerWrapper.message)
-                workerWrapper.callback = () => {
-                    finalResponse.push(this.#temporaryResponse)
+                workerWrapper.callback = (message: any) => {
+                    finalResponse.push(message)
                     workerWrapper.worker.terminate()
                     resolve()
                 }
+                // Send the message to the worker and wait for the callback ⤴
+                workerWrapper.worker.postMessage(workerWrapper.message)
             })
         }
 
@@ -75,21 +78,20 @@ export default class Threads implements ThreadsInterface {
         return finalResponse
     }
 
-    #sortPush(worker: Worker, message: any): number {
+    #sortPush(worker: Worker, message: any): void {
+        // Find the thread with the least amount of workers (first available)
         const thread: Thread = this.#threads.reduce((thread1: Thread, thread2: Thread) => thread1 > thread2 ? thread2 : thread1)
-        const index: number = this.#threads.indexOf(thread)
-
-        this.#threads[index].push({worker, message})
-        return index
+        thread.push({worker, message})
     }
 
     #flattenFinalResponse(response: any[][]): any[] {
         const finalResponse: any[] = []
-        const longestThread: number = response.reduce((longestThread: number, thread: any[]) => thread.length > longestThread ? thread.length : longestThread, 0)
+        const longestThreadLength: number = response.reduce((longestLength: number, thread: any[]) => thread.length > longestLength ? thread.length : longestLength, 0)
 
-        for (let i = 0; i < longestThread; i++) {
+        for (let i = 0; i < longestThreadLength; i++) {
             response.forEach(threadResponse => {
-                if (threadResponse[i] !== undefined) finalResponse.push(threadResponse[i])
+                //The thread may have fewer responses than the longest thread or may contain falsy values
+                if (threadResponse.length > i) finalResponse.push(threadResponse[i])
             })
         }
 
@@ -103,10 +105,9 @@ export default class Threads implements ThreadsInterface {
         const worker: Worker = new Worker(url)
 
         worker.onmessage = async (message: MessageEvent): Promise<void> => {
-            this.#temporaryResponse = message.data
             this.#threads.forEach((thread: Thread) => {
                 thread.forEach((workerWrapper: WorkerWrapper) => {
-                    if (workerWrapper.worker === worker) workerWrapper.callback?.()
+                    if (workerWrapper.worker === worker) workerWrapper.callback!(message.data)
                 })
             })
         }
