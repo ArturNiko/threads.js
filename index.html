@@ -10,55 +10,44 @@
 <script type="module">
     import Threads from './dist/index.mjs'
 
-    const threads = new Threads(navigator.hardwareConcurrency)
+    const threads = new Threads(4)
 
     function test1(message) {
-        let rand = Math.random()
         let counter = message.data ?? 0
-        for (let i = 0; i < 100000000; i++) {
-            counter += i * rand
+        for (let i = 0; i < 1000000; i++) {
+            counter += i
         }
 
         postMessage(counter)
     }
 
-
-    async function test2(counter = 0) {
-        let rand = Math.random()
-        return new Promise((resolve) => {
-            for (let i = 0; i < 100000000; i++) {
-                counter += i * rand
-            }
-            resolve(counter)
-        })
-    }
-
+    /**
+     * [ // Chained execution for each thread
+     *     [task -> task -> task]
+     *     [task -> task]
+     *     [task -> task]
+     *     [task -> task]
+     * ]
+     *
+     */
     threads
-        .push(test1, 0)
-        .push(test1, 0)
-        .push(test1, 0)
-        .push(test1, 0)
-        .push(test1, 0)
-        .push(test1, 0)
-        .push(test1, 0)
+        .push(test1)
+        .push(test1)
+        .push(test1)
+        .push(test1)
+        .push(test1)
+        .push(test1)
+        .push(test1)
+        .push(test1)
+        .push(test1)
+
 
     console.log('Threads are loaded:')
     console.log(threads.threads)
 
-    console.time('With threads')
-    console.log(await threads.execute())
-    console.timeEnd('With threads')
+    console.time('Execution took')
 
-    console.time('Without threads')
-    await test2(0)
-    await test2(0)
-    await test2(0)
-    await test2(0)
-    await test2(0)
-    await test2(0)
-    await test2(0)
-    console.timeEnd('Without threads')
-
+    console.log(await threads.execute({messageMode: 'chained', responseMode: 'last'}))
 
 </script>
 </body>
