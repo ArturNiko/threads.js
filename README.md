@@ -5,6 +5,7 @@
 ### Table of Contents
  - [**Installation**](#installation)
  - [**Initialization**](#initialization)
+   - [**Options**](#options)
  - [**Execution**](#execution)
    - [**Note**](#note)
 
