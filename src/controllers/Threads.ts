@@ -32,16 +32,17 @@ interface TaskOptionsInterface  {
 
 interface OptionsInterface {
     messageMode?: MessageMode,
-    responseMode?: ResponseMode
+    responseMode?: ResponseMode,
 }
 
-interface ExecuteOptionsInterface extends OptionsInterface{
-    index?: number
+interface ExecuteOptionsInterface extends OptionsInterface {
+    index?: number,
+    stepCallback?: Function
 }
 
 interface ThreadsInterface {
     execute(options?: ExecuteOptionsInterface): Promise<any>
-    push(task: Function, options?: TaskOptionsInterface): this
+    push(task: Function, options?: TaskOptionsInterface): this|false
 
     get threads(): Thread[]
 }
@@ -71,7 +72,8 @@ export default class Threads implements ThreadsInterface {
 
             return await this.#runThread(this.threads[options.index]!
                 , options?.messageMode ?? this.messageMode
-                , options?.responseMode ?? this.responseMode)
+                , options?.responseMode ?? this.responseMode
+                , options?.stepCallback)
         }
         else {
             const promises: Promise<any>[] = []
@@ -79,7 +81,8 @@ export default class Threads implements ThreadsInterface {
                 if (thread.pool.length > 0 && thread.state === ThreadState.IDLE) {
                     promises.push(this.#runThread(thread
                         , options?.messageMode ?? this.messageMode
-                        , options?.responseMode ?? this.responseMode))
+                        , options?.responseMode ?? this.responseMode
+                        , options?.stepCallback))
                 }
             })
 
@@ -90,15 +93,13 @@ export default class Threads implements ThreadsInterface {
     push(task: Function, options?: TaskOptionsInterface): this {
         const worker: Worker = this.#createWorker(task.toString())
 
-        if (options?.index !== undefined) {
-            this.#threads[options.index]?.pool?.push({worker, message: options?.message})
-        }
+        if (options?.index !== undefined) this.#threads[options.index]?.pool?.push({worker, message: options?.message})
         else this.#sortPush(worker, options?.message)
 
         return this
     }
 
-    async #runThread(thread: Thread, messageMode: MessageMode, responseMode: ResponseMode): Promise<any[]> {
+    async #runThread(thread: Thread, messageMode: MessageMode, responseMode: ResponseMode, stepCallback?: Function): Promise<any[]> {
         const finalResponse: any[] = []
 
         let poolTempResponse: any = undefined
@@ -111,6 +112,7 @@ export default class Threads implements ThreadsInterface {
                     poolTempResponse = message
                     finalResponse.push(message)
                     workerWrapper.worker.terminate()
+                    stepCallback?.(message, thread)
                     resolve()
                 }
                 // Send the message to the worker and wait for the callback ⤴
@@ -131,7 +133,9 @@ export default class Threads implements ThreadsInterface {
     #sortPush(worker: Worker, message?: any): void {
         // Find the thread with the least amount of workers (first available)
         const thread: Thread = this.#threads.reduce((thread1: Thread, thread2: Thread) => thread1.pool.length > thread2.pool.length ? thread2 : thread1)
+
         thread.pool.push({worker, message})
+
     }
 
     #flattenFinalResponse(response: any[][]): any[] {
@@ -144,6 +148,7 @@ export default class Threads implements ThreadsInterface {
                 if (threadResponse.length > i) finalResponse.push(threadResponse[i])
             })
         }
+
 
         return finalResponse
     }
@@ -171,5 +176,13 @@ export default class Threads implements ThreadsInterface {
 
     get threads(): Thread[] {
         return this.#threads
+    }
+
+    get taskCount(): number {
+        return this.#threads.reduce((count: number, thread: Thread) => count + thread.pool.length, 0)
+    }
+
+    get busiestThreadTaskCount(): number {
+        return this.#threads.reduce((longestLength: number, thread: Thread) => thread.pool.length > longestLength ? thread.pool.length : longestLength, 0)
     }
 }

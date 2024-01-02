@@ -4,50 +4,82 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Vite App</title>
+    <style>
+        body {
+            color: white;
+            margin: 0;
+            padding: 0;
+            font-family: sans-serif;
+            background-color: black;
+        }
+        main {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+        #progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 5px;
+            width: 0;
+            background: #0f0;
+            transition: width .2s ease-in-out;
+            box-shadow: 0 0 10px #0f0;
+        }
+        #progress.done {
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+    </style>
 </head>
 <body>
-<div id="app"></div>
+<div id="app">
+    <div id="progress"></div>
+</div>
+<main>
+    <h1>Threads.js</h1>
+</main>
 <script type="module">
     import Threads from './dist/index.mjs'
 
-    const threads = new Threads(4)
+    const threads = new Threads(navigator.hardwareConcurrency)
 
     function test1(message) {
         let counter = message.data ?? 0
-        for (let i = 0; i < 1000000; i++) {
-            counter += i
+        const rand = Math.random() * .001
+        for (let i = 0; i < 500_000_000; i++) {
+            counter += i * rand > 10 ? Math.floor(i * rand) : 0
         }
 
         postMessage(counter)
     }
 
-    /**
-     * [ // Chained execution for each thread
-     *     [task -> task -> task]
-     *     [task -> task]
-     *     [task -> task]
-     *     [task -> task]
-     * ]
-     *
-     */
-    threads
-        .push(test1)
-        .push(test1)
-        .push(test1)
-        .push(test1)
-        .push(test1)
-        .push(test1)
-        .push(test1)
-        .push(test1)
-        .push(test1)
 
+    for (let i = 0; i < 10; i++) {
+        const randThreadIndex = Math.floor(Math.random() * threads.threads.length)
+        threads.push(test1, {index: randThreadIndex})
+    }
+    console.log('Threads loaded:', threads.threads.map(thread => thread.pool.length))
 
-    console.log('Threads are loaded:')
-    console.log(threads.threads)
 
     console.time('Execution took')
+    const progress = {
+        counter: 0,
+        totalTasks: threads.taskCount,
+        callback: (_) => {
+            const percentage = Math.round((++progress.counter / progress.totalTasks) * 100)
 
-    console.log(await threads.execute({messageMode: 'chained', responseMode: 'last'}))
+            const progressEl = document.getElementById('progress')
+            if (percentage === 100) progressEl.classList.add('done')
+            progressEl.style.width = percentage + '%'
+        }
+    }
+
+    const results = await threads.execute({stepCallback: progress.callback})
+    console.timeEnd('Execution took')
+    console.log('Result:', results)
 
 </script>
 </body>
