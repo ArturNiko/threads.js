@@ -1,137 +1,67 @@
-type WorkerWrapper = {
-    worker: Worker
-    message: any
-    callback?: Function
-}
+import Thread, {AllExecuteOptionsInterface, WorkerWrapper, ExecutionMode, State as ThreadState} from './Thread'
 
-
-enum MessageMode {
-    REGULAR = 'regular',
-    CHAINED = 'chained'
-}
-
-enum ResponseMode {
-    ALL = 'all',
-    LAST = 'last'
-}
-
-enum ThreadState {
-    IDLE = 'idle',
-    BUSY = 'busy'
-}
-
-interface Thread {
-    state: ThreadState,
-    pool: WorkerWrapper[]
-}
-
-interface TaskOptionsInterface  {
+interface TaskOptionsInterface {
     message?: any,
     index?: number
 }
 
 interface OptionsInterface {
-    messageMode?: MessageMode,
-    responseMode?: ResponseMode
-}
-
-interface ExecuteOptionsInterface extends OptionsInterface{
-    index?: number
+    executionMode?: ExecutionMode,
 }
 
 interface ThreadsInterface {
-    execute(options?: ExecuteOptionsInterface): Promise<any>
-    push(task: Function, options?: TaskOptionsInterface): this
+    execute(options?: AllExecuteOptionsInterface): Promise<any>
+
+    push(task: Function, options?: TaskOptionsInterface): this | false
 
     get threads(): Thread[]
+
+    get taskCount(): number
+
 }
 
 export default class Threads implements ThreadsInterface {
     readonly #threadCount: number
     readonly #threads: Thread[] = []
 
-    messageMode: MessageMode
-    responseMode: ResponseMode
 
     constructor(threadCount: number, options?: OptionsInterface) {
         this.#threadCount = Math.min(threadCount, navigator.hardwareConcurrency ? navigator.hardwareConcurrency - 1 : 3)
 
         // Create threads
+        let index: number = 0
         this.#threads = [...Array(this.#threadCount)].map(() => {
-            return {pool: [], state: ThreadState.IDLE}
+            return new Thread(index++, options?.executionMode)
         })
-
-        this.messageMode = options?.messageMode ?? MessageMode.REGULAR
-        this.responseMode = options?.responseMode ?? ResponseMode.ALL
     }
 
-    async execute(options?: ExecuteOptionsInterface): Promise<any> {
+    async execute(options?: AllExecuteOptionsInterface): Promise<any[] | undefined> {
         if (options?.index !== undefined) {
-            if (this.threads[options.index]?.state !== ThreadState.IDLE) return
-
-            return await this.#runThread(this.threads[options.index]!
-                , options?.messageMode ?? this.messageMode
-                , options?.responseMode ?? this.responseMode)
+            if(this.#threads[options.index] === undefined) console.warn(`Execution: Thread with index ${options.index} does not exist`)
+            return this.#threads[options.index]?.execute({mode: options?.mode, stepCallback: options?.stepCallback})
         }
-        else {
-            const promises: Promise<any>[] = []
-            this.#threads.forEach(thread => {
-                if (thread.pool.length > 0 && thread.state === ThreadState.IDLE) {
-                    promises.push(this.#runThread(thread
-                        , options?.messageMode ?? this.messageMode
-                        , options?.responseMode ?? this.responseMode))
-                }
-            })
 
-            return this.#flattenFinalResponse(await Promise.all(promises))
-        }
+
+        return this.#flattenFinalResponse(await Promise.all([
+            ...this.#threads
+                .filter(thread => thread.pool.length > 0 && thread.state === ThreadState.IDLE)
+                .map(thread => thread.execute({mode: options?.mode, stepCallback: options?.stepCallback}))
+        ]))
     }
 
     push(task: Function, options?: TaskOptionsInterface): this {
         const worker: Worker = this.#createWorker(task.toString())
 
-        if (options?.index !== undefined) {
-            this.#threads[options.index]?.pool?.push({worker, message: options?.message})
-        }
+        if (options?.index !== undefined) this.#threads[options.index]?.push(worker, options?.message)
         else this.#sortPush(worker, options?.message)
 
         return this
     }
 
-    async #runThread(thread: Thread, messageMode: MessageMode, responseMode: ResponseMode): Promise<any[]> {
-        const finalResponse: any[] = []
-
-        let poolTempResponse: any = undefined
-
-        // Create a promise for each worker in the thread
-        thread.state = ThreadState.BUSY
-        for (const workerWrapper of thread.pool) {
-            await new Promise<void>((resolve) => {
-                workerWrapper.callback = (message: any) => {
-                    poolTempResponse = message
-                    finalResponse.push(message)
-                    workerWrapper.worker.terminate()
-                    resolve()
-                }
-                // Send the message to the worker and wait for the callback ⤴
-                workerWrapper.worker.postMessage(
-                    messageMode === MessageMode.CHAINED && poolTempResponse
-                        ? poolTempResponse
-                        : workerWrapper.message)
-            })
-        }
-
-        // Clear the thread
-        thread.pool.splice(0, thread.pool.length)
-        thread.state = ThreadState.IDLE
-
-        return responseMode === ResponseMode.LAST ? [finalResponse[finalResponse.length - 1]] : finalResponse
-    }
-
     #sortPush(worker: Worker, message?: any): void {
-        // Find the thread with the least amount of workers (first available)
-        const thread: Thread = this.#threads.reduce((thread1: Thread, thread2: Thread) => thread1.pool.length > thread2.pool.length ? thread2 : thread1)
-        thread.pool.push({worker, message})
+        // Find the thread with the least amount of workers
+        const thread: Thread = this.#threads.reduce((thread1: Thread, Thread: Thread) => thread1.pool.length > Thread.pool.length ? Thread : thread1)
+        thread.push(worker, message)
     }
 
     #flattenFinalResponse(response: any[][]): any[] {
@@ -144,6 +74,7 @@ export default class Threads implements ThreadsInterface {
                 if (threadResponse.length > i) finalResponse.push(threadResponse[i])
             })
         }
+
 
         return finalResponse
     }
@@ -171,5 +102,9 @@ export default class Threads implements ThreadsInterface {
 
     get threads(): Thread[] {
         return this.#threads
+    }
+
+    get taskCount(): number {
+        return this.#threads.reduce((count: number, thread: Thread) => count + thread.pool.length, 0)
     }
 }

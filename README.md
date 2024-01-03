@@ -6,7 +6,9 @@
  - [**Installation**](#installation)
  - [**Initialization**](#initialization)
    - [**Options**](#options)
- - [**Execution**](#execution)
+ - [**Running**](#running)
+   - [**Push**](#push)
+   - [**Execute**](#execute)
    - [**Note**](#note)
 
 ### Installation
@@ -17,7 +19,6 @@
 
 
 ### Initialization
-
 ```typescript
     import Threads from '@a4turp/threads.js'
 
@@ -30,47 +31,39 @@
 Several options are available to configure messages and responses during execution. 
 Pass them either into the constructor or change them afterward.
 
-
 ```typescript
-    enum MessageMode {
+    enum ExecutionMode {
+        /**
+         * Messages are sent from passed parameter (message) to the task
+         * 
+         * Response is array of all responses from each thread (in order of pushed tasks)
+        */
         REGULAR = 'regular',
-        CHAINED = 'chained'
-    }
 
-    enum ResponseMode {
-        ALL = 'all',
-        LAST = 'last'
+        /**
+         * Messages are chained from the last response to the next task
+         * (initial message is passed as parameter from first pushed task)
+         * 
+         * Response is array of last responses from each thread
+         */
+        CHAINED = 'chained',
     }
 
     interface OptionsInterface {
-        /**
-         * Message mode changes message handling for each thread
-         * - Chained: task responses are passed into the next task as a message inside 1 thread
-         *  - Except the first task (the initial message for the first task is passed)
-         * - Regular(default): task messages are passed normally from push
-        */
-        messageMode?: MessageMode,
-
-        /**
-         * Response mode changes the response for each thread
-         * - LAST: only the last task response is shown (for each thread)
-         * - ALL(default): every task response is shown (for each thread)
-        */
-        responseMode?: ResponseMode
+        executionMode?: ExecutionMode,
     }
 ```
 
-### Execution
-
+### Running
 The sequence of running tasks on different threads is straightforward.
 - Firstly, push tasks and their parameters (message) into thread pools (Workers are created).
 - Secondly, execute tasks and wait for the response.
 
-
-Here is the showcase of execution (5 threads available)
+#### Push
+Here is the showcase of pushing
 ```typescript
     function test(message) {
-        let paremeter = message.data
+        let parameter = message.data
         //Do whatever you want
         postMessage(result)
     }
@@ -87,46 +80,56 @@ Here is the showcase of execution (5 threads available)
      *
      *  There are multiple ways to push the task (function) into a thread.
     */
-    threads
-            .push(test, {message: 10, index: 0}) // 1st task, 1st thread, message: 10
-            .push(test, {index: 0})              // 2nd task, 1st thread, message: none
-            .push(test, {index: 1, message: 20}) // 1st task, 2nd thread, message: 20
-            .push(test, {index: 1, message: 10}) // 2nd task, 2nd thread, message: 10
-            .push(test, {message: 10})           // 1st task, 3rd thread, message: 10
-            .push(test, {message: 20})           // 1st task, 4th thread, message: 20
-            .push(test)                          // 1st task, 5th thread, message: none
-            .push(test)                          // 1st task, 3rd thread, message: none (limit is 5 threads and less busy thread is 3rd one)
 
+    // Push the task into the thread with least amount of tasks and that is not busy
+    threads.push(test)
+    // Push the task with a parameter into the thread with least amount of tasks and that is not busy
+    threads.push(test, {message: 'test'})
+    // Push the task into a spercific thread with a parameter (if not busy)
+    threads.push(test, {message: 'test', index: 0})
+    // You can also push multiple tasks at once 
+    threads.push(test, {message: 'test'}).push(test, {index: 0}).push(test)
+```
 
-    interface ExecuteOptionsInterface extends OptionsInterface{
-       // tasks execution on specific thread, if nothing is passed, if nothing is passed, tasks will be executed on all threads.
-       index?: number
-       // overwrites messageMode property for 1 execution
-       messageMode?: MessageMode,
-       // overwrites responseMode property for 1 execution
-       responseMode?: ResponseMode 
+#### Execute
+Here is the showcase of execution
+```typescript
+   interface ExecuteOptionsInterface {
+        // Execution mode (default: REGULAR)
+        mode?: ExecutionMode,
+        // Execute tasks on specific thread
+        index?: number,
+        // Callback function called after each task is executed
+        stepCallback?: Function
     }
     
     /**
-     *  @param options: ExecuteOptionsInterface
-     *  @return any[] // basically the value that has been passed into postMessage() method.
+     *  @param options?: ExecuteOptionsInterface
+     *  @return Promise<any[]|void>
+     *
+     *  There are multiple ways to execute the tasks.
     */
-    const promises = [
-       //execute 1st thread
-       await threads.execute({index: 0, messageMode: 'chained', responseMode: 'last'}),
-       //execute 2nd thread
-       await threads.execute({index: 1}),
-       //execute the rest of the threads
-       await threads.execute()     
-    ]
- 
+    
+    // Execute all tasks on all threads that are not busy and have tasks
+    await threads.execute()
+    // Execute all tasks on specific thread (if not busy and has tasks)
+    await threads.execute({index: 0})
+    // Execute all tasks on all threads with callback function
+    /**
+    * @param response: any // Executed task response
+    * @param thread: Thread (object) // Thread that executed the task
+    */
+    await threads.execute({stepCallback: (response, thread) => console.log(response)})
+    // Execute all tasks on all threads with specific execution mode
+    await threads.execute({mode: ExecutionMode.CHAINED})
+    // You can also combine all options
+    await threads.execute({index: 0, mode: ExecutionMode.CHAINED, stepCallback: (response) => console.log(response)})
 ```
 
 #### Note
-
- - Treat passed function like they are in Worker. ***[Web Workers API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers)***
-    - Access passed parameter (message) on `message.data`.
-    - Avoid directly modifying the message to prevent potential performance issues.
-    - Instead of `return`, use `postMessage(returnValue)`.
+- Treat passed functions as if they are in a Web Worker. [Learn more about the Web Workers API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers).
+   - Access the passed parameter (`message`) using `message.data`.
+   - Avoid directly modifying the `message` parameter to prevent potential performance issues.
+   - Instead of `return`, use `postMessage(returnValue)`.
    
    
