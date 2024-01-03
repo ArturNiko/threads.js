@@ -107,8 +107,4 @@ export default class Threads implements ThreadsInterface {
     get taskCount(): number {
         return this.#threads.reduce((count: number, thread: Thread) => count + thread.pool.length, 0)
     }
-
-    get #busiestThreadTaskCount(): number {
-        return this.#threads.reduce((longestLength: number, thread: Thread) => thread.pool.length > longestLength ? thread.pool.length : longestLength, 0)
-    }
 }
