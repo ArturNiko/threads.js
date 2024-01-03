@@ -14,7 +14,7 @@ export enum ExecutionMode {
     CHAINED = 'chained',
 }
 
-export interface AllExecuteOptionsInterface extends ExecuteOptionsInterface{
+export interface AllExecuteOptionsInterface extends ExecuteOptionsInterface {
     index?: number,
 }
 
@@ -33,8 +33,8 @@ interface ThreadInterface {
 }
 
 export default class Thread implements ThreadInterface {
-    #pool: WorkerWrapper[] = []
-    #index: number
+    readonly #pool: WorkerWrapper[] = []
+    readonly #index: number
 
     state: State = State.IDLE
     executionMode: ExecutionMode
@@ -45,20 +45,19 @@ export default class Thread implements ThreadInterface {
         this.executionMode = mode ?? ExecutionMode.REGULAR
     }
 
-
     push(worker: Worker, message: any, callback?: Function): this {
-        if(this.state === State.IDLE) this.#pool.push({worker, message, callback})
+        if (this.state === State.IDLE) this.#pool.push({worker, message, callback})
         else console.warn(`Push: Thread with index ${this.#index} is busy`)
 
         return this
     }
 
-    async execute(executionParams: ExecuteOptionsInterface): Promise<any[]>  {
-        if( this.pool.length === 0) {
+    async execute(executionParams: ExecuteOptionsInterface): Promise<any[]> {
+        if (this.pool.length === 0) {
             console.warn(`Thread with index ${this.#index} has no workers`)
             return []
         }
-        if(this.state === State.BUSY) {
+        if (this.state === State.BUSY) {
             console.warn(`Execution: Thread with index ${this.#index} is busy`)
             return []
         }
@@ -80,7 +79,7 @@ export default class Thread implements ThreadInterface {
                 }
                 // Send the message to the worker and wait for the workerWrapper.callback to resolve ⤴
                 workerWrapper.worker.postMessage(
-                    executionParams.mode === ExecutionMode.CHAINED && poolTempResponse
+                    (executionParams.mode ?? this.executionMode) === ExecutionMode.CHAINED && poolTempResponse
                         ? poolTempResponse
                         : workerWrapper.message)
             })
@@ -90,7 +89,7 @@ export default class Thread implements ThreadInterface {
         this.#pool.splice(0, this.#pool.length)
         this.state = State.IDLE
 
-        return executionParams.mode === ExecutionMode.CHAINED
+        return (executionParams.mode ?? this.executionMode) === ExecutionMode.CHAINED
             ? [finalResponse[finalResponse.length - 1]]
             : finalResponse
     }
@@ -98,6 +97,4 @@ export default class Thread implements ThreadInterface {
     get pool(): WorkerWrapper[] {
         return this.#pool
     }
-
-
 }

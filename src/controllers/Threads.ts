@@ -52,7 +52,10 @@ export default class Threads implements ThreadsInterface {
     push(task: Function, options?: TaskOptionsInterface): this {
         const worker: Worker = this.#createWorker(task.toString())
 
-        if (options?.index !== undefined) this.#threads[options.index]?.push(worker, options?.message)
+        if (options?.index !== undefined) {
+            if(this.#threads[options.index] === undefined) console.warn(`Push: Thread with index ${options.index} does not exist`)
+            this.#threads[options.index]?.push(worker, options?.message)
+        }
         else this.#sortPush(worker, options?.message)
 
         return this
@@ -60,7 +63,15 @@ export default class Threads implements ThreadsInterface {
 
     #sortPush(worker: Worker, message?: any): void {
         // Find the thread with the least amount of workers
-        const thread: Thread = this.#threads.reduce((thread1: Thread, Thread: Thread) => thread1.pool.length > Thread.pool.length ? Thread : thread1)
+        const availableThreads: Thread[] = this.#threads.filter(thread => thread.state === ThreadState.IDLE)
+
+        if (availableThreads.length === 0) {
+            console.warn(`Push: No available threads`)
+            return
+        }
+
+        const thread: Thread = availableThreads.reduce((thread1: Thread, Thread: Thread) => thread1.pool.length > Thread.pool.length ? Thread : thread1)
+
         thread.push(worker, message)
     }
 
