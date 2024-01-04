@@ -85,6 +85,8 @@
 
     const threads = new Threads(4)
 
+
+
     function test1(message) {
         let counter = message.data ?? 0
         const rand = Math.random() * .001
@@ -96,11 +98,14 @@
     }
 
 
+
     for (let i = 0; i < 10; i++) {
         const randThreadIndex = Math.floor(Math.random() * threads.threads.length)
-        threads.push(test1, {index: randThreadIndex})
+        threads.add(test1, randThreadIndex, {message: i})
+        //threads.sortIn(test1, {message: i})
     }
     console.log('Threads loaded:', threads.threads.map(thread => thread.pool.length))
+
 
 
     document.querySelector('#run').addEventListener('click', async function () {
@@ -140,6 +145,8 @@
         this.innerText = 'Done'
     }, {once: true})
 
+
+    window.threads = threads
 </script>
 </body>
 </html>

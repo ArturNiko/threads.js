@@ -1,14 +1,14 @@
-export type WorkerWrapper = {
-    worker: Worker
-    message: any
-    callback?: Function
-}
+import WorkerWrapper from './WorkerWrapper'
+
 
 export enum State {
     IDLE = 'idle',
     BUSY = 'busy'
 }
 
+enum Type {
+
+}
 export enum ExecutionMode {
     REGULAR = 'regular',
     CHAINED = 'chained',
@@ -25,7 +25,7 @@ interface ExecuteOptionsInterface {
 }
 
 interface ThreadInterface {
-    push(worker: Worker, message: any, callback?: Function): this
+    push(workerWrapper: WorkerWrapper): this
 
     execute(executionParams: ExecuteOptionsInterface): Promise<any[]>
 
@@ -45,8 +45,8 @@ export default class Thread implements ThreadInterface {
         this.executionMode = mode ?? ExecutionMode.REGULAR
     }
 
-    push(worker: Worker, message: any, callback?: Function): this {
-        if (this.state === State.IDLE) this.#pool.push({worker, message, callback})
+    push(workerWrapper: WorkerWrapper): this {
+        if (this.state === State.IDLE) this.#pool.push(workerWrapper)
         else console.warn(`Push: Thread with index ${this.#index} is busy`)
 
         return this
@@ -73,12 +73,12 @@ export default class Thread implements ThreadInterface {
                 workerWrapper.callback = (message: any) => {
                     poolTempResponse = message
                     finalResponse.push(message)
-                    workerWrapper.worker.terminate()
+                    workerWrapper.worker!.terminate()
                     executionParams.stepCallback?.(message, this)
                     resolve()
                 }
                 // Send the message to the worker and wait for the workerWrapper.callback to resolve ⤴
-                workerWrapper.worker.postMessage(
+                workerWrapper.worker!.postMessage(
                     (executionParams.mode ?? this.executionMode) === ExecutionMode.CHAINED && poolTempResponse
                         ? poolTempResponse
                         : workerWrapper.message)

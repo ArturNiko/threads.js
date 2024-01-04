@@ -1,8 +1,9 @@
-import Thread, {AllExecuteOptionsInterface, WorkerWrapper, ExecutionMode, State as ThreadState} from './Thread'
+import Thread, {AllExecuteOptionsInterface, ExecutionMode, State as ThreadState} from './Thread'
+import WorkerWrapper, {TaskType} from './WorkerWrapper'
 
 interface TaskOptionsInterface {
     message?: any,
-    index?: number
+    taskType?: TaskType,
 }
 
 interface OptionsInterface {
@@ -10,13 +11,14 @@ interface OptionsInterface {
 }
 
 interface ThreadsInterface {
-    execute(options?: AllExecuteOptionsInterface): Promise<any>
+    readonly threads: Thread[]
+    readonly taskCount: number
 
-    push(task: Function, options?: TaskOptionsInterface): this | false
+    execute(options?: AllExecuteOptionsInterface): Promise<any[] | undefined>
 
-    get threads(): Thread[]
+    add(task: Function, index: number, options: TaskOptionsInterface): this
 
-    get taskCount(): number
+    sortIn(task: Function, options?: TaskOptionsInterface): this
 
 }
 
@@ -25,8 +27,9 @@ export default class Threads implements ThreadsInterface {
     readonly #threads: Thread[] = []
 
 
-    constructor(threadCount: number, options?: OptionsInterface) {
-        this.#threadCount = Math.min(threadCount, navigator.hardwareConcurrency ? navigator.hardwareConcurrency - 1 : 3)
+    constructor(threadCount: number = 3, options?: OptionsInterface) {
+        this.#threadCount = Math.max(1, Math.min(threadCount, navigator.hardwareConcurrency - 1))
+
 
         // Create threads
         let index: number = 0
@@ -37,8 +40,9 @@ export default class Threads implements ThreadsInterface {
 
     async execute(options?: AllExecuteOptionsInterface): Promise<any[] | undefined> {
         if (options?.index !== undefined) {
-            if(this.#threads[options.index] === undefined) console.warn(`Execution: Thread with index ${options.index} does not exist`)
-            return this.#threads[options.index]?.execute({mode: options?.mode, stepCallback: options?.stepCallback})
+            const selectedThread: Thread = this.#threads[options.index]
+            if (selectedThread === undefined) console.warn(`Execution: Thread with index ${options.index} does not exist`)
+            return selectedThread?.execute({mode: options?.mode, stepCallback: options?.stepCallback})
         }
 
 
@@ -49,30 +53,58 @@ export default class Threads implements ThreadsInterface {
         ]))
     }
 
-    push(task: Function, options?: TaskOptionsInterface): this {
-        const worker: Worker = this.#createWorker(task.toString())
+    add(task: Function, index: number, options?: TaskOptionsInterface): this {
+        const selectedThread: Thread = this.#threads[index]
 
-        if (options?.index !== undefined) {
-            if(this.#threads[options.index] === undefined) console.warn(`Push: Thread with index ${options.index} does not exist`)
-            this.#threads[options.index]?.push(worker, options?.message)
+        if (!selectedThread) {
+            console.warn(`Push: Thread with index ${index} does not exist`)
+            return this
         }
-        else this.#sortPush(worker, options?.message)
+
+        switch (options?.taskType) {
+            case undefined:
+            case TaskType.ONCE:
+                selectedThread.push(new WorkerWrapper(this.threads, task, TaskType.ONCE, options?.message))
+                break
+
+            case TaskType.LOOPING:
+                if (selectedThread.pool.length === 0) selectedThread.push(new WorkerWrapper(this.threads, task, TaskType.LOOPING, options.message))
+                else console.warn(`Push: Looping task can be pushed only to an empty thread`)
+                break
+
+            default:
+                console.warn(`Push: Unknown task type ${options?.taskType}`)
+        }
 
         return this
     }
 
-    #sortPush(worker: Worker, message?: any): void {
-        // Find the thread with the least amount of workers
-        const availableThreads: Thread[] = this.#threads.filter(thread => thread.state === ThreadState.IDLE)
 
-        if (availableThreads.length === 0) {
-            console.warn(`Push: No available threads`)
-            return
+    sortIn(task: Function, options?: TaskOptionsInterface): this {
+        switch (options?.taskType) {
+            case undefined:
+            case TaskType.ONCE:
+                const availableThreads: Thread[] = this.#threads.filter(thread => thread.state === ThreadState.IDLE)
+
+                if (availableThreads.length === 0) console.warn(`Push: No available threads`)
+                else {
+                    const thread: Thread = availableThreads.reduce((thread1: Thread, Thread: Thread) => thread1.pool.length > Thread.pool.length ? Thread : thread1)
+                    thread.push(new WorkerWrapper(this.threads, task, TaskType.ONCE, options?.message))
+                }
+                break
+
+            case TaskType.LOOPING:
+                const emptyThread: Thread | undefined = this.#threads.find(thread => thread.pool.length === 0)
+
+                if (emptyThread === undefined) console.warn(`Push: Looping task can be pushed only to an empty thread`)
+                else emptyThread.push(new WorkerWrapper(this.threads, task, TaskType.LOOPING, options?.message))
+                break
+
+            default:
+                console.warn(`Push: Unknown task type ${options!.taskType}`)
         }
 
-        const thread: Thread = availableThreads.reduce((thread1: Thread, Thread: Thread) => thread1.pool.length > Thread.pool.length ? Thread : thread1)
-
-        thread.push(worker, message)
+        return this
     }
 
     #flattenFinalResponse(response: any[][]): any[] {
@@ -86,29 +118,7 @@ export default class Threads implements ThreadsInterface {
             })
         }
 
-
         return finalResponse
-    }
-
-    #createWorker(method: string): Worker {
-        const bytes: Uint8Array = new TextEncoder().encode(`self.onmessage = ${method}`)
-        const blob: Blob = new Blob([bytes], {type: 'application/javascript'})
-        const url: string = URL.createObjectURL(blob)
-        const worker: Worker = new Worker(url)
-
-        worker.onmessage = async (message: MessageEvent): Promise<void> => {
-            this.#threads.forEach((thread: Thread) => {
-                thread.pool.forEach((workerWrapper: WorkerWrapper) => {
-                    if (workerWrapper.worker === worker) workerWrapper.callback!(message.data)
-                })
-            })
-        }
-
-        worker.onerror = (error: ErrorEvent): void => {
-            console.error(error)
-        }
-
-        return worker
     }
 
     get threads(): Thread[] {
