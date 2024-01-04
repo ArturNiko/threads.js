@@ -1,14 +1,12 @@
-import WorkerWrapper from './WorkerWrapper'
+import WorkerWrapper, {LoopingWorker} from './WorkerWrapper'
 
 
 export enum State {
     IDLE = 'idle',
+    FULL = 'full',
     BUSY = 'busy'
 }
 
-enum Type {
-
-}
 export enum ExecutionMode {
     REGULAR = 'regular',
     CHAINED = 'chained',
@@ -33,6 +31,7 @@ interface ThreadInterface {
 }
 
 export default class Thread implements ThreadInterface {
+    readonly #limit: number = 32
     readonly #pool: WorkerWrapper[] = []
     readonly #index: number
 
@@ -46,8 +45,21 @@ export default class Thread implements ThreadInterface {
     }
 
     push(workerWrapper: WorkerWrapper): this {
-        if (this.state === State.IDLE) this.#pool.push(workerWrapper)
-        else console.warn(`Push: Thread with index ${this.#index} is busy`)
+        switch (this.state) {
+            case State.IDLE:
+                this.#pool.push(workerWrapper)
+                if(this.#pool.length === this.#limit || workerWrapper.worker instanceof LoopingWorker) this.state = State.FULL
+                break
+
+            case State.FULL:
+                console.warn(`Push: Thread with index ${this.#index} is full`)
+                break
+
+            case State.BUSY:
+                console.warn(`Push: Thread with index ${this.#index} is busy`)
+                break
+        }
+
 
         return this
     }
@@ -62,6 +74,12 @@ export default class Thread implements ThreadInterface {
             return []
         }
 
+        return this.pool[0].worker instanceof LoopingWorker
+            ? this.#executeLoop(executionParams.stepCallback)
+            : await this.#executeOnce(executionParams)
+    }
+
+    async #executeOnce(executionParams: ExecuteOptionsInterface): Promise<any[]> {
         const finalResponse: any[] = []
 
         let poolTempResponse: any = undefined
@@ -71,14 +89,16 @@ export default class Thread implements ThreadInterface {
         for (const workerWrapper of this.#pool) {
             await new Promise<void>((resolve) => {
                 workerWrapper.callback = (message: any) => {
+
                     poolTempResponse = message
                     finalResponse.push(message)
                     workerWrapper.worker!.terminate()
                     executionParams.stepCallback?.(message, this)
                     resolve()
                 }
+                console.log(workerWrapper)
                 // Send the message to the worker and wait for the workerWrapper.callback to resolve ⤴
-                workerWrapper.worker!.postMessage(
+                ;(workerWrapper.worker! as Worker).postMessage(
                     (executionParams.mode ?? this.executionMode) === ExecutionMode.CHAINED && poolTempResponse
                         ? poolTempResponse
                         : workerWrapper.message)
@@ -94,6 +114,15 @@ export default class Thread implements ThreadInterface {
             : finalResponse
     }
 
+    #executeLoop(callback?: Function): Array<LoopingWorker> {
+        this.state = State.BUSY
+        const workerWrapper: WorkerWrapper = this.#pool[0]
+        const worker: LoopingWorker = workerWrapper.worker as LoopingWorker
+
+        worker.run(workerWrapper.message)
+        callback?.(workerWrapper.message, this)
+        return [worker]
+    }
     get pool(): WorkerWrapper[] {
         return this.#pool
     }

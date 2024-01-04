@@ -80,8 +80,10 @@
     <p>Reload the page to run again.</p>
     <button id="run">Run</button>
 </main>
+<!-- <script type="text/javascript" src="main.js"></script> -->
 <script type="module">
-    import Threads from './dist/index.mjs'
+
+    import Threads, {TaskType, ExecutionMode} from './dist/index.mjs'
 
     const threads = new Threads(4)
 
@@ -97,14 +99,27 @@
         postMessage(counter)
     }
 
+    function loopTest(message) {
+        message += 1
+
+        return message
+    }
 
 
+   threads.add(loopTest, 0, {message: 20, taskType: TaskType.LOOPING})
+
+   /*
     for (let i = 0; i < 10; i++) {
+        console.log(i)
         const randThreadIndex = Math.floor(Math.random() * threads.threads.length)
         threads.add(test1, randThreadIndex, {message: i})
         //threads.sortIn(test1, {message: i})
     }
+
+    */
+
     console.log('Threads loaded:', threads.threads.map(thread => thread.pool.length))
+
 
 
 
@@ -112,8 +127,6 @@
         this.classList.add('running')
         this.innerText = 'Running...'
 
-        ///////////////////// Main part begin
-        console.time('Execution took')
         const progress = {
             counter: 0,
             totalTasks: threads.taskCount,
@@ -126,6 +139,19 @@
             }
         }
 
+
+        ///////////////////// Main part begin
+
+        console.time('Execution took')
+
+        window.worker = (await threads.execute({
+            stepCallback: progress.callback
+        }))[0]
+        console.log(window.worker)
+
+
+
+        /*
         const promises = [
             threads.execute({
                 index: 0,
@@ -138,6 +164,8 @@
         ]
         console.log('Result:', await Promise.all(promises))
         console.timeEnd('Execution took')
+
+         */
 
         ///////////////////// Main part end
 

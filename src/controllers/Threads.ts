@@ -48,7 +48,7 @@ export default class Threads implements ThreadsInterface {
 
         return this.#flattenFinalResponse(await Promise.all([
             ...this.#threads
-                .filter(thread => thread.pool.length > 0 && thread.state === ThreadState.IDLE)
+                .filter(thread => thread.pool.length > 0 && thread.state !== ThreadState.BUSY)
                 .map(thread => thread.execute({mode: options?.mode, stepCallback: options?.stepCallback}))
         ]))
     }
@@ -64,11 +64,12 @@ export default class Threads implements ThreadsInterface {
         switch (options?.taskType) {
             case undefined:
             case TaskType.ONCE:
-                selectedThread.push(new WorkerWrapper(this.threads, task, TaskType.ONCE, options?.message))
+                selectedThread.push(new WorkerWrapper(task, TaskType.ONCE, options?.message))
                 break
 
             case TaskType.LOOPING:
-                if (selectedThread.pool.length === 0) selectedThread.push(new WorkerWrapper(this.threads, task, TaskType.LOOPING, options.message))
+                console.info('This is experimental feature. Use it at your own risk')
+                if (selectedThread.pool.length === 0) selectedThread.push(new WorkerWrapper( task, TaskType.LOOPING, options.message))
                 else console.warn(`Push: Looping task can be pushed only to an empty thread`)
                 break
 
@@ -89,15 +90,16 @@ export default class Threads implements ThreadsInterface {
                 if (availableThreads.length === 0) console.warn(`Push: No available threads`)
                 else {
                     const thread: Thread = availableThreads.reduce((thread1: Thread, Thread: Thread) => thread1.pool.length > Thread.pool.length ? Thread : thread1)
-                    thread.push(new WorkerWrapper(this.threads, task, TaskType.ONCE, options?.message))
+                    thread.push(new WorkerWrapper(task, TaskType.ONCE, options?.message))
                 }
                 break
 
             case TaskType.LOOPING:
+                console.info('This is experimental feature. Use it at your own risk')
                 const emptyThread: Thread | undefined = this.#threads.find(thread => thread.pool.length === 0)
 
                 if (emptyThread === undefined) console.warn(`Push: Looping task can be pushed only to an empty thread`)
-                else emptyThread.push(new WorkerWrapper(this.threads, task, TaskType.LOOPING, options?.message))
+                else emptyThread.push(new WorkerWrapper(task, TaskType.LOOPING, options?.message))
                 break
 
             default:
