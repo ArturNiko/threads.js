@@ -1,67 +1,90 @@
+import {F} from "vitest/dist/types-e3c9754d";
+
+type WorkWrapperConstructor<T extends TaskType> = T extends TaskType.LIVE
+    ? { type: T; } // If T is TaskType.LIVE then task and message are not required
+    : { type: T; task: Function; message?: any } // Else task is required, message is optional
+
 export enum TaskType {
-    ONCE = 'once',
-    LOOPING = 'looping',
+    REGULAR = 'regular',
+    LIVE = 'live',
 }
 
 
 enum Command {
     RUN = 'run',
-    SET = 'set',
-    GET = 'get',
     TERMINATE = 'terminate',
 }
 
 interface WorkerWrapperInterface {
-    callback(message: any): void
+    callback: (message: any) => void
 
-    get worker(): Worker | LoopingWorker
+    get worker(): Worker | LiveWorker
 
     get message(): any
 
     get taskType(): TaskType
+
 }
 
 export default class WorkerWrapper implements WorkerWrapperInterface {
     readonly #message?: any
     readonly #taskType: TaskType
 
-    #worker?: Worker | LoopingWorker
+    #worker?: Worker | LiveWorker
+
+    callback: (message: any) => void = () => {}
 
 
-    constructor(task: Function, type: TaskType, message?: any) {
-        this.#message = message
-        this.#taskType = type
-
-        if (this.#taskType === TaskType.ONCE) this.#createOnceExecutableTask(task)
-        else if (this.#taskType === TaskType.LOOPING) this.#createExecutableLoopingTask(task)
+    constructor(options: WorkWrapperConstructor<TaskType>) {
+        switch (options.type) {
+            case TaskType.REGULAR:
+                this.#message = options.message
+                this.#taskType = options.type
+                this.#createRegularWorker(options.task)
+                break
+            case TaskType.LIVE:
+                this.#taskType = options.type
+                this.#createLiveWorker()
+                break
+            default:
+                throw new Error('Unknown task type')
+        }
 
         return this
     }
 
-    #createOnceExecutableTask(task: Function): void {
+    #createRegularWorker(task: Function): void {
         const bytes: Uint8Array = new TextEncoder().encode(`self.onmessage = ${task.toString()}`)
         const blob: Blob = new Blob([bytes], {type: 'application/javascript'})
         const url: string = URL.createObjectURL(blob)
         const worker: Worker = new Worker(url)
 
-        worker.onmessage = async (message: MessageEvent): Promise<void> => {
-            this.callback!(message.data)
+        worker.onmessage  = (message: MessageEvent): void => {
+            this.callback(message.data)
         }
-
-        worker.onerror = (error: ErrorEvent): void => {
-            console.error(error)
-        }
+        worker.onerror = console.error
 
         this.#worker = worker
     }
 
-    #createExecutableLoopingTask(task: Function): void {
-        this.#worker = new LoopingWorker(task, this.message)
+    #createLiveWorker(): void {
+        const bytes: Uint8Array = new TextEncoder().encode(`
+            self.onmessage = (message) => {
+                switch (message.data.command) {
+                    case 'run':
+                        eval(\`(\${message.data.task})(\${message.data.value})\`)
+                        break
+                    case 'terminate':
+                        postMessage('terminated')
+                        self.close()
+                }
+            }`)
+        const blob: Blob = new Blob([bytes], {type: 'application/javascript'})
+        const url: string = URL.createObjectURL(blob)
+        this.#worker = new LiveWorker(url)
     }
 
-    callback(_: any): void {}
-
-    get worker(): Worker | LoopingWorker {
+    get worker(): Worker | LiveWorker {
         return this.#worker!
     }
 
@@ -72,107 +95,44 @@ export default class WorkerWrapper implements WorkerWrapperInterface {
     get taskType(): TaskType {
         return this.#taskType
     }
-
 }
 
 
-interface LoopingWorkerInterface {
-    callback(message: any): void
-
-    get(): Promise<any>
-
-    set(value: any): void
-
-    run(value: any): void
+interface LiveWorkerInterface {
+    run(callback: Function, value: any): void
 
     terminate(): void
-
-    get worker(): Worker
 }
 
-export class LoopingWorker implements LoopingWorkerInterface {
+export class LiveWorker implements LiveWorkerInterface {
     readonly #worker: Worker
 
-    constructor(task: Function, message?: any) {
-        const bytes: Uint8Array = new TextEncoder().encode(`
-                let global_action = 'run'
-                let global_value = ${message ?? 'undefined'}
-                
-                self.onmessage = (event) => {
-                    switch (event.data.command) {
-                        case 'run':
-                            global_action = 'run'
-                            loop()
-                            break
-                        case 'set':
-                            global_action = 'set'
-                            global_value = event.data.value
-                            break
-                        case 'get':
-                            global_action = 'get'
-                            break
-                        case 'terminate':
-                            postMessage(value)
-                            cancelAnimationFrame(loop) 
-                    }
-                }
-                
-                // Function to start the loop
-                function loop() {
-                    setInterval(() => {
-                        global_value = ${task.name}(global_value)
-    
-                    // Send the updated value to the main thread
-                    if(global_action === 'get') {
-                        global_action = 'run'
-                        postMessage(global_value)
-                    }
-                    })
-                    
-    
-                    //requestAnimationFrame(loop)
-            }
-                
-            ${task.toString()}
-        `)
-        const blob: Blob = new Blob([bytes], {type: 'application/javascript'})
-        const url: string = URL.createObjectURL(blob)
-        const worker = new Worker(url)
+    #callback: (message: any) => void = () => {}
 
-        worker.onmessage = async (message: MessageEvent): Promise<void> => {
-            this.callback(message.data)
+    constructor(url: string) {
+        this.#worker = new Worker(url)
+
+
+        this.#worker.onmessage = (message: MessageEvent): void => {
+            this.#callback(message.data)
         }
-
-        this.#worker = worker
+        this.#worker.onerror = console.error
     }
 
-    callback(_: any): void {}
 
-    async get(): Promise<any> {
-        this.worker.postMessage({command: Command.GET})
-        return new Promise<any>((resolve) => {
-            this.callback = (message: any) => {
+    async run(task: Function, value?: any): Promise<any> {
+        const response = new Promise<any>((resolve) => {
+            this.#callback = (message: any) => {
                 resolve(message)
             }
         })
-    }
+        this.#worker.postMessage({command: Command.RUN, task: task.toString(), value})
 
-    set(value: any) {
-        this.worker.postMessage({command: Command.SET, value: value})
-    }
-
-    run(value: any) {
-        this.worker.postMessage({command: Command.RUN, value: value ?? undefined})
+        return await response
     }
 
     terminate() {
-        this.worker.postMessage({command: Command.TERMINATE})
-        this.worker.terminate()
+        this.#worker.postMessage({command: Command.TERMINATE})
+
     }
-
-
-    get worker(): Worker {
-        return this.#worker
-    }
-
 }

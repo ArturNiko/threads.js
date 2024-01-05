@@ -80,7 +80,7 @@
     <p>Reload the page to run again.</p>
     <button id="run">Run</button>
 </main>
-<!-- <script type="text/javascript" src="main.js"></script> -->
+
 <script type="module">
 
     import Threads, {TaskType, ExecutionMode} from './dist/index.mjs'
@@ -99,14 +99,14 @@
         postMessage(counter)
     }
 
-    function loopTest(message) {
+    function liveTest(message) {
+
         message += 1
 
-        return message
+        postMessage(message)
     }
 
-
-   threads.add(loopTest, 0, {message: 20, taskType: TaskType.LOOPING})
+    const liveWorker = threads.stream(0)
 
    /*
     for (let i = 0; i < 10; i++) {
@@ -127,28 +127,16 @@
         this.classList.add('running')
         this.innerText = 'Running...'
 
-        const progress = {
-            counter: 0,
-            totalTasks: threads.taskCount,
-            callback: (_) => {
-                const percentage = Math.round((++progress.counter / progress.totalTasks) * 100)
-
-                const progressEl = document.getElementById('progress')
-                if (percentage === 100) progressEl.classList.add('done')
-                progressEl.style.width = percentage + '%'
-            }
-        }
 
 
         ///////////////////// Main part begin
 
         console.time('Execution took')
 
-        window.worker = (await threads.execute({
-            stepCallback: progress.callback
-        }))[0]
-        console.log(window.worker)
 
+
+
+        await liveWorker.run(liveTest, 0)
 
 
         /*
@@ -163,9 +151,9 @@
             }).then(),
         ]
         console.log('Result:', await Promise.all(promises))
-        console.timeEnd('Execution took')
 
          */
+        console.timeEnd('Execution took')
 
         ///////////////////// Main part end
 

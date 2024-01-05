@@ -1,10 +1,11 @@
-import WorkerWrapper, {LoopingWorker} from './WorkerWrapper'
+import WorkerWrapper, {LiveWorker} from './WorkerWrapper'
 
 
 export enum State {
     IDLE = 'idle',
     FULL = 'full',
-    BUSY = 'busy'
+    BUSY = 'busy',
+    LIVE = 'live',
 }
 
 export enum ExecutionMode {
@@ -25,7 +26,10 @@ interface ExecuteOptionsInterface {
 interface ThreadInterface {
     push(workerWrapper: WorkerWrapper): this
 
+
     execute(executionParams: ExecuteOptionsInterface): Promise<any[]>
+
+    stream(): LiveWorker | undefined
 
     get pool(): WorkerWrapper[]
 }
@@ -48,18 +52,16 @@ export default class Thread implements ThreadInterface {
         switch (this.state) {
             case State.IDLE:
                 this.#pool.push(workerWrapper)
-                if(this.#pool.length === this.#limit || workerWrapper.worker instanceof LoopingWorker) this.state = State.FULL
+                if (this.#pool.length === this.#limit) this.state = State.FULL
+                else if (workerWrapper.worker instanceof LiveWorker) this.state = State.LIVE
                 break
 
+            case State.LIVE:
             case State.FULL:
-                console.warn(`Push: Thread with index ${this.#index} is full`)
-                break
-
             case State.BUSY:
-                console.warn(`Push: Thread with index ${this.#index} is busy`)
+                console.warn(`Push: Thread with index ${this.#index} is ${this.state}`)
                 break
         }
-
 
         return this
     }
@@ -69,17 +71,33 @@ export default class Thread implements ThreadInterface {
             console.warn(`Thread with index ${this.#index} has no workers`)
             return []
         }
-        if (this.state === State.BUSY) {
-            console.warn(`Execution: Thread with index ${this.#index} is busy`)
+        else if (this.state === State.BUSY || this.state === State.FULL) {
+            console.warn(`Execute: Thread with index ${this.#index} is ${this.state}`)
+            return []
+        }
+        else if (this.state === State.LIVE) {
+            console.warn(`Execute: Thread with index ${this.#index} should be streamed via stream() method`)
             return []
         }
 
-        return this.pool[0].worker instanceof LoopingWorker
-            ? this.#executeLoop(executionParams.stepCallback)
-            : await this.#executeOnce(executionParams)
+        return await this.#executeCall(executionParams)
     }
 
-    async #executeOnce(executionParams: ExecuteOptionsInterface): Promise<any[]> {
+    stream(): LiveWorker | undefined {
+        if (this.state === State.BUSY) {
+            console.warn(`Stream: Thread with index ${this.#index} is ${this.state}`)
+            return
+        }
+
+        else if (this.state !== State.LIVE) {
+            console.warn(`Stream: Thread with index ${this.#index} should be set to ${this.state} mode via setLiveThread() method`)
+            return
+        }
+
+        return this.#streamCall()
+    }
+
+    async #executeCall(executionParams: ExecuteOptionsInterface): Promise<any[]> {
         const finalResponse: any[] = []
 
         let poolTempResponse: any = undefined
@@ -89,19 +107,20 @@ export default class Thread implements ThreadInterface {
         for (const workerWrapper of this.#pool) {
             await new Promise<void>((resolve) => {
                 workerWrapper.callback = (message: any) => {
-
                     poolTempResponse = message
                     finalResponse.push(message)
                     workerWrapper.worker!.terminate()
                     executionParams.stepCallback?.(message, this)
                     resolve()
                 }
-                console.log(workerWrapper)
+
                 // Send the message to the worker and wait for the workerWrapper.callback to resolve ⤴
-                ;(workerWrapper.worker! as Worker).postMessage(
+                const worker: Worker = workerWrapper.worker as Worker
+                worker.postMessage(
                     (executionParams.mode ?? this.executionMode) === ExecutionMode.CHAINED && poolTempResponse
                         ? poolTempResponse
-                        : workerWrapper.message)
+                        : workerWrapper.message
+                )
             })
         }
 
@@ -114,15 +133,12 @@ export default class Thread implements ThreadInterface {
             : finalResponse
     }
 
-    #executeLoop(callback?: Function): Array<LoopingWorker> {
+    #streamCall(): LiveWorker {
         this.state = State.BUSY
         const workerWrapper: WorkerWrapper = this.#pool[0]
-        const worker: LoopingWorker = workerWrapper.worker as LoopingWorker
-
-        worker.run(workerWrapper.message)
-        callback?.(workerWrapper.message, this)
-        return [worker]
+        return workerWrapper.worker as LiveWorker
     }
+
     get pool(): WorkerWrapper[] {
         return this.#pool
     }

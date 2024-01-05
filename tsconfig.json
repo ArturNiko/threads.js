@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2017",
     "useDefineForClassFields": true,
-    "lib": ["DOM", "ES2017"],
+    "lib": ["DOM", "ES2017", "WebWorker"],
     "strict": true,
     "resolveJsonModule": true,
     "moduleResolution": "node",

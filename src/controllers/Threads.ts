@@ -1,10 +1,5 @@
 import Thread, {AllExecuteOptionsInterface, ExecutionMode, State as ThreadState} from './Thread'
-import WorkerWrapper, {TaskType} from './WorkerWrapper'
-
-interface TaskOptionsInterface {
-    message?: any,
-    taskType?: TaskType,
-}
+import WorkerWrapper, {LiveWorker, TaskType} from './WorkerWrapper'
 
 interface OptionsInterface {
     executionMode?: ExecutionMode,
@@ -14,12 +9,13 @@ interface ThreadsInterface {
     readonly threads: Thread[]
     readonly taskCount: number
 
+    add(task: Function, index: number, message?: any): this
+
+    sortIn(task: Function, message?: any): this
+
     execute(options?: AllExecuteOptionsInterface): Promise<any[] | undefined>
 
-    add(task: Function, index: number, options: TaskOptionsInterface): this
-
-    sortIn(task: Function, options?: TaskOptionsInterface): this
-
+    stream(index: number): LiveWorker | undefined
 }
 
 export default class Threads implements ThreadsInterface {
@@ -38,22 +34,7 @@ export default class Threads implements ThreadsInterface {
         })
     }
 
-    async execute(options?: AllExecuteOptionsInterface): Promise<any[] | undefined> {
-        if (options?.index !== undefined) {
-            const selectedThread: Thread = this.#threads[options.index]
-            if (selectedThread === undefined) console.warn(`Execution: Thread with index ${options.index} does not exist`)
-            return selectedThread?.execute({mode: options?.mode, stepCallback: options?.stepCallback})
-        }
-
-
-        return this.#flattenFinalResponse(await Promise.all([
-            ...this.#threads
-                .filter(thread => thread.pool.length > 0 && thread.state !== ThreadState.BUSY)
-                .map(thread => thread.execute({mode: options?.mode, stepCallback: options?.stepCallback}))
-        ]))
-    }
-
-    add(task: Function, index: number, options?: TaskOptionsInterface): this {
+    add(task: Function, index: number, message?: any): this {
         const selectedThread: Thread = this.#threads[index]
 
         if (!selectedThread) {
@@ -61,52 +42,48 @@ export default class Threads implements ThreadsInterface {
             return this
         }
 
-        switch (options?.taskType) {
-            case undefined:
-            case TaskType.ONCE:
-                selectedThread.push(new WorkerWrapper(task, TaskType.ONCE, options?.message))
-                break
+        selectedThread.push(new WorkerWrapper({task, type: TaskType.REGULAR, message}))
 
-            case TaskType.LOOPING:
-                console.info('This is experimental feature. Use it at your own risk')
-                if (selectedThread.pool.length === 0) selectedThread.push(new WorkerWrapper( task, TaskType.LOOPING, options.message))
-                else console.warn(`Push: Looping task can be pushed only to an empty thread`)
-                break
+        return this
+    }
 
-            default:
-                console.warn(`Push: Unknown task type ${options?.taskType}`)
+    sortIn(task: Function, message?: any): this {
+        const availableThreads: Thread[] = this.#threads.filter(thread => thread.state === ThreadState.IDLE)
+
+        if (availableThreads.length === 0) console.warn(`Push: No available threads`)
+        else {
+            const thread: Thread = availableThreads.reduce((thread1: Thread, Thread: Thread) => thread1.pool.length > Thread.pool.length ? Thread : thread1)
+            thread.push(new WorkerWrapper({task, type: TaskType.REGULAR, message}))
         }
 
         return this
     }
 
-
-    sortIn(task: Function, options?: TaskOptionsInterface): this {
-        switch (options?.taskType) {
-            case undefined:
-            case TaskType.ONCE:
-                const availableThreads: Thread[] = this.#threads.filter(thread => thread.state === ThreadState.IDLE)
-
-                if (availableThreads.length === 0) console.warn(`Push: No available threads`)
-                else {
-                    const thread: Thread = availableThreads.reduce((thread1: Thread, Thread: Thread) => thread1.pool.length > Thread.pool.length ? Thread : thread1)
-                    thread.push(new WorkerWrapper(task, TaskType.ONCE, options?.message))
-                }
-                break
-
-            case TaskType.LOOPING:
-                console.info('This is experimental feature. Use it at your own risk')
-                const emptyThread: Thread | undefined = this.#threads.find(thread => thread.pool.length === 0)
-
-                if (emptyThread === undefined) console.warn(`Push: Looping task can be pushed only to an empty thread`)
-                else emptyThread.push(new WorkerWrapper(task, TaskType.LOOPING, options?.message))
-                break
-
-            default:
-                console.warn(`Push: Unknown task type ${options!.taskType}`)
+    async execute(options?: AllExecuteOptionsInterface): Promise<any[]> {
+        if (options?.index !== undefined) {
+            const selectedThread: Thread = this.#threads[options.index]
+            if (selectedThread === undefined) console.warn(`Execute: Thread with index ${options.index} does not exist`)
+            console.log(selectedThread?.execute({mode: options?.mode, stepCallback: options?.stepCallback}))
+            return selectedThread?.execute({mode: options?.mode, stepCallback: options?.stepCallback})
         }
 
-        return this
+        return this.#flattenFinalResponse(await Promise.all([
+            ...this.#threads
+                .filter(thread => thread.pool.length > 0 && thread.state === ThreadState.IDLE || thread.state === ThreadState.FULL)
+                .map(thread => thread.execute({mode: options?.mode, stepCallback: options?.stepCallback}))
+        ]))
+    }
+
+    stream(index: number): LiveWorker | undefined {
+        const selectedThread: Thread = this.#threads[index]
+
+        if (selectedThread === undefined) console.warn(`Push: Thread with index ${index} does not exist`)
+        else {
+            selectedThread.pool.splice(0, selectedThread.pool.length)
+            selectedThread.push(new WorkerWrapper({type: TaskType.LIVE}))
+        }
+
+        return selectedThread.stream()
     }
 
     #flattenFinalResponse(response: any[][]): any[] {
@@ -115,7 +92,6 @@ export default class Threads implements ThreadsInterface {
 
         for (let i = 0; i < longestThreadLength; i++) {
             response.forEach(threadResponse => {
-                //The thread may have fewer responses than the longest thread or may contain falsy values
                 if (threadResponse.length > i) finalResponse.push(threadResponse[i])
             })
         }
