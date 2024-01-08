@@ -1,6 +1,6 @@
 {
   "name": "@a4turp/threads.js",
-  "version": "1.3.0_1",
+  "version": "1.3.0-alpha.0",
   "author": "Artur Papikian",
   "license": "MIT",
   "description": "Light and easy web-tool for accessing multiple threads via web workers.",
