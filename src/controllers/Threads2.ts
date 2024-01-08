@@ -130,10 +130,12 @@ export class LiveWorker {
         
             self.onmessage = (message) => {
                 const data = message.data
-           
+                
+                
                 switch (data.command) {
                     case 'run':
-                        handle(eval(\`(\${data.task})(\${data.value})\`))
+                        const fn = new Function('return ' + data.task)()
+                        handle(fn.apply(data.value))
                         break
                     case 'terminate':
                         postMessage('terminated')

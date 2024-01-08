@@ -116,6 +116,7 @@
 
         console.log("Result:", await threads2.execute({
             step: (message, index, totalLength) => {
+                console.log(index)
                 document.querySelector('#progress').style.width = (100 / totalLength * (index + 1)) + '%'
             }
         }))
