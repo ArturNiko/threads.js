@@ -23,6 +23,7 @@
             transition: width .2s ease-in-out;
             box-shadow: 0 0 10px #0f0;
         }
+
         #progress.done {
             opacity: 0;
             transition: opacity 1s ease-in-out;
@@ -59,6 +60,7 @@
             color: #000;
             pointer-events: none;
         }
+
         #run.done {
             color: #000;
             background: lime;
@@ -83,11 +85,12 @@
 
 <script type="module">
 
-    import Threads, {TaskType, ExecutionMode} from './dist/index.mjs'
+    import Threads, {TaskType, ExecutionMode, Threads2} from './dist/index.mjs'
 
+   // const threads = new Threads(4)
+
+    //const threads2 = new Threads2(4)
     const threads = new Threads(4)
-
-
 
     function test1(message) {
         let counter = message.data ?? 0
@@ -106,21 +109,7 @@
         postMessage(message)
     }
 
-    const liveWorker = threads.stream(0)
-
-   /*
-    for (let i = 0; i < 10; i++) {
-        console.log(i)
-        const randThreadIndex = Math.floor(Math.random() * threads.threads.length)
-        threads.add(test1, randThreadIndex, {message: i})
-        //threads.sortIn(test1, {message: i})
-    }
-
-    */
-
-    console.log('Threads loaded:', threads.threads.map(thread => thread.pool.length))
-
-
+    //const liveWorker = threads.stream(0)
 
 
     document.querySelector('#run').addEventListener('click', async function () {
@@ -128,41 +117,43 @@
         this.innerText = 'Running...'
 
 
-
         ///////////////////// Main part begin
+        console.log('Threads')
+        console.time('Execution took. ')
 
-        console.time('Execution took')
+        for (let i = 0; i < 10; i++) {
+            threads.sortIn(test1, {message: i})
+            //threads.sortIn(test1, {message: i})
+        }
 
 
+        await threads.execute()
 
 
-        await liveWorker.run(liveTest, 0)
-
-
-        /*
-        const promises = [
-            threads.execute({
-                index: 0,
-                mode: 'chained',
-                stepCallback: progress.callback
-            }).then(),
-            threads.execute({
-                stepCallback: progress.callback
-            }).then(),
-        ]
-        console.log('Result:', await Promise.all(promises))
-
-         */
         console.timeEnd('Execution took')
 
+        console.log('Threads')
+        /*
+        console.log('Threads2')
+        console.time('Execution took. ')
+
+        for (let i = 0; i < 10; i++) {
+            threads2.push(test1, {message: i})
+            //threads.sortIn(test1, {message: i})
+            //threads.sortIn(test1, {message: i})
+        }
+
+
+        await threads2.execute()
+
+
+        console.timeEnd('Execution took')
+        */
         ///////////////////// Main part end
 
-        this.classList.replace('running','done')
+        this.classList.replace('running', 'done')
         this.innerText = 'Done'
     }, {once: true})
-
-
-    window.threads = threads
 </script>
 </body>
 </html>
