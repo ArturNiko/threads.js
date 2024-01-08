@@ -5,7 +5,7 @@ describe('#Functionality', () => {
     const threads = new Threads(100)
 
     it('Constructing', () => {
-        expect(threads.threads.length).toEqual(navigator.hardwareConcurrency - 1 ?? 3)
+        expect(threads.threads.length).toEqual(navigator.hardwareConcurrency * 2 - 1 ?? 3)
     })
 })
 
