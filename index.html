@@ -85,10 +85,10 @@
 
 <script type="module">
 
-    import  {Threads2} from './dist/index.mjs'
+    import Threads from './dist/index.mjs'
 
 
-    const threads2 = new Threads2(4)
+    const threads2 = new Threads(4)
 
     function test1(message) {
         let counter = message.data ?? 0
@@ -111,14 +111,17 @@
         console.time('Execution took')
 
         for (let i = 0; i < 20; i++) {
-            threads2.push(test1, {message: i})
+            threads2.push(test1, i)
             //threads.sortIn(test1, {message: i})
             //threads.sortIn(test1, {message: i})
         }
 
 
-        await threads2.execute()
-
+        console.log("Result:", await threads2.execute({
+            step: (message, index, totalLength) => {
+                document.querySelector('#progress').style.width = (100 / totalLength * (index + 1)) + '%'
+            }
+        }))
 
         console.timeEnd('Execution took')
         ///////////////////// Main part end

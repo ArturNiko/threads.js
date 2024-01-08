@@ -1,5 +1,6 @@
-import '../utils/JSONValidate'
-
+interface ExecuteOptions {
+    step?: (message: any, index: number, totalLength: number) => void
+}
 
 enum TaskState {
     PENDING = 'pending',
@@ -15,9 +16,9 @@ interface Task {
 }
 
 
-export default class Threads2 {
+export default class Threads {
     readonly #threadCount: number
-    readonly #threads: Thread2[] = []
+    readonly #threads: Thread[] = []
     readonly #pool: Task[] = []
 
 
@@ -27,7 +28,7 @@ export default class Threads2 {
         // Create threads
         let index: number = 0
         this.#threads = [...Array(this.#threadCount)].map(() => {
-            return new Thread2(index++)
+            return new Thread(index++)
         })
     }
 
@@ -42,7 +43,7 @@ export default class Threads2 {
         return this
     }
 
-    async execute(): Promise<any[]> {
+    async execute(options: ExecuteOptions): Promise<any[]> {
         if (this.#pool.length === 0) {
             console.warn(`No tasks to execute`)
             return []
@@ -50,15 +51,27 @@ export default class Threads2 {
 
         const pool: Task[] = this.#pool.splice(0, this.#pool.length)
 
-        const promises: Promise<any>[] = this.#threads.map((thread: Thread2) => {
-            return thread.execute(pool) // Do not forget that we are passing the reference to the pool
+        const promises: Promise<any>[] = this.#threads.map((thread: Thread) => {
+            // Reference of the pool is passed to each thread
+            return thread.execute(pool, options)
         })
 
-        return await Promise.all(promises)
+        // Wait for all threads to finish and flatten the responses
+        return await Promise.all(promises).then((responses: any[][]) => this.#mergeResponses(responses))
+
     }
 
+    #mergeResponses(responses: any[][]): any[] {
+        for(let i = 0; i < responses[0].length; i++) {
+            for(let j = 1; j < responses.length; j++) {
+                if(responses[j][i] !== undefined) responses[0][i] = responses[j][i]
+            }
+        }
 
-    get threads(): Thread2[] {
+        return responses[0]
+    }
+
+    get threads(): Thread[] {
         return this.#threads
     }
 
@@ -67,9 +80,10 @@ export default class Threads2 {
     }
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-class Thread2 {
-    readonly #worker: LiveWorker2 = new LiveWorker2()
+export class Thread {
+    readonly #worker: LiveWorker = new LiveWorker()
     readonly #index: number
 
 
@@ -77,16 +91,19 @@ class Thread2 {
         this.#index = index
     }
 
-    async execute(pool: Task[]): Promise<any> {
+    async execute(pool: Task[], options: ExecuteOptions): Promise<any[]> {
         const responses: any[] = []
         responses.length = pool.length
 
         while (pool.find(task => task.state === TaskState.PENDING)) {
             const task: Task = pool.find(task => task.state === TaskState.PENDING)!
+
             task.state = TaskState.RUNNING
-            responses[task.index] = await this.#worker.run(task.callback, JSON.validate(task.message) ? JSON.stringify(task.message) : task.message.toString())
+            responses[task.index] = await this.#worker.run(task.callback, task.message)
             task.state = TaskState.COMPLETED
-            pool.splice(pool.indexOf(task), 1, task)
+
+            options.step?.(responses[task.index], task.index, responses.length)
+            pool.splice(pool.indexOf(task), 1)
         }
 
         return responses
@@ -99,7 +116,7 @@ enum Command {
     TERMINATE = 'terminate',
 }
 
-export class LiveWorker2 {
+export class LiveWorker {
     readonly #worker: Worker
 
     #callback: (message: any) => void = () => {
@@ -107,16 +124,28 @@ export class LiveWorker2 {
 
     constructor() {
         const bytes: Uint8Array = new TextEncoder().encode(`
+            function JSONValidate(variable) {
+                try {
+                    JSON.parse(variable)
+                } catch (e) {
+                    return false
+                }
+                return true
+            }
+        
             self.onmessage = (message) => {
-                switch (message.data.command) {
+                const data = message.data
+           
+                switch (data.command) {
                     case 'run':
-                        eval(\`(\${message.data.task})(\${message.data.value})\`)
+                        eval(\`(\${data.task})(\${data.value})\`)
                         break
                     case 'terminate':
                         postMessage('terminated')
                         self.close()
                 }
             }`)
+
         const blob: Blob = new Blob([bytes], {type: 'application/javascript'})
         const url: string = URL.createObjectURL(blob)
         this.#worker = new Worker(url)
@@ -131,7 +160,6 @@ export class LiveWorker2 {
 
     async run(task: Function, value?: any): Promise<any> {
         const response = new Promise<any>((resolve) => {
-
             this.#callback = (message: any) => {
                 resolve(message)
             }
@@ -143,6 +171,5 @@ export class LiveWorker2 {
 
     terminate() {
         this.#worker.postMessage({command: Command.TERMINATE})
-
     }
 }
