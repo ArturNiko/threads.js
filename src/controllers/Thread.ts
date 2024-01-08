@@ -1,100 +1,61 @@
-export type WorkerWrapper = {
-    worker: Worker
-    message: any
-    callback?: Function
+import LiveWorker from './LiveWorker'
+import {ExecuteOptions} from './Threads'
+
+export enum TaskState {
+    PENDING = 'pending',
+    RUNNING = 'running',
+    COMPLETED = 'completed',
 }
 
-export enum State {
+enum State {
     IDLE = 'idle',
-    BUSY = 'busy'
+    RUNNING = 'running'
 }
 
-export enum ExecutionMode {
-    REGULAR = 'regular',
-    CHAINED = 'chained',
+export interface Task {
+    task: Function
+    message?: any
+    index: number
+    state: TaskState
 }
 
-export interface AllExecuteOptionsInterface extends ExecuteOptionsInterface {
-    index?: number,
-}
-
-interface ExecuteOptionsInterface {
-    mode?: ExecutionMode,
-    stepCallback?: Function
-
-}
 
 interface ThreadInterface {
-    push(worker: Worker, message: any, callback?: Function): this
-
-    execute(executionParams: ExecuteOptionsInterface): Promise<any[]>
-
-    get pool(): WorkerWrapper[]
+    execute(pool: Task[], options: ExecuteOptions): Promise<any[]>
 }
 
 export default class Thread implements ThreadInterface {
-    readonly #pool: WorkerWrapper[] = []
+    readonly #worker: LiveWorker = new LiveWorker()
     readonly #index: number
-
-    state: State = State.IDLE
-    executionMode: ExecutionMode
+    #state: State = State.IDLE
 
 
-    constructor(index: number, mode?: ExecutionMode) {
+    constructor(index: number) {
         this.#index = index
-        this.executionMode = mode ?? ExecutionMode.REGULAR
     }
 
-    push(worker: Worker, message: any, callback?: Function): this {
-        if (this.state === State.IDLE) this.#pool.push({worker, message, callback})
-        else console.warn(`Push: Thread with index ${this.#index} is busy`)
-
-        return this
-    }
-
-    async execute(executionParams: ExecuteOptionsInterface): Promise<any[]> {
-        if (this.pool.length === 0) {
-            console.warn(`Thread with index ${this.#index} has no workers`)
-            return []
-        }
-        if (this.state === State.BUSY) {
-            console.warn(`Execution: Thread with index ${this.#index} is busy`)
+    async execute(pool: Task[], options: ExecuteOptions): Promise<any[]> {
+        if (this.#state === State.RUNNING) {
+            console.warn(`Thread ${this.#index} is already running`)
             return []
         }
 
-        const finalResponse: any[] = []
+        this.#state = State.RUNNING
+        const responses: any[] = []
+        responses.length = pool.length
 
-        let poolTempResponse: any = undefined
+        while (pool.find(task => task.state === TaskState.PENDING)) {
+            const taskWrapper: Task = pool.find(task => task.state === TaskState.PENDING)!
 
-        // Create a promise for each worker in the thread
-        this.state = State.BUSY
-        for (const workerWrapper of this.#pool) {
-            await new Promise<void>((resolve) => {
-                workerWrapper.callback = (message: any) => {
-                    poolTempResponse = message
-                    finalResponse.push(message)
-                    workerWrapper.worker.terminate()
-                    executionParams.stepCallback?.(message, this)
-                    resolve()
-                }
-                // Send the message to the worker and wait for the workerWrapper.callback to resolve ⤴
-                workerWrapper.worker.postMessage(
-                    (executionParams.mode ?? this.executionMode) === ExecutionMode.CHAINED && poolTempResponse
-                        ? poolTempResponse
-                        : workerWrapper.message)
-            })
+            taskWrapper.state = TaskState.RUNNING
+            responses[taskWrapper.index] = await this.#worker.run(taskWrapper.task, taskWrapper.message)
+            taskWrapper.state = TaskState.COMPLETED
+
+            options.step?.(responses[taskWrapper.index], taskWrapper.index, responses.length)
+            pool.splice(pool.indexOf(taskWrapper), 1)
         }
 
-        // Clear the thread
-        this.#pool.splice(0, this.#pool.length)
-        this.state = State.IDLE
-
-        return (executionParams.mode ?? this.executionMode) === ExecutionMode.CHAINED
-            ? [finalResponse[finalResponse.length - 1]]
-            : finalResponse
-    }
-
-    get pool(): WorkerWrapper[] {
-        return this.#pool
+        this.#state = State.IDLE
+        return responses
     }
 }

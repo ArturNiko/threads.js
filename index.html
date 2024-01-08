@@ -23,6 +23,7 @@
             transition: width .2s ease-in-out;
             box-shadow: 0 0 10px #0f0;
         }
+
         #progress.done {
             opacity: 0;
             transition: opacity 1s ease-in-out;
@@ -59,6 +60,7 @@
             color: #000;
             pointer-events: none;
         }
+
         #run.done {
             color: #000;
             background: lime;
@@ -80,66 +82,57 @@
     <p>Reload the page to run again.</p>
     <button id="run">Run</button>
 </main>
+
 <script type="module">
+
     import Threads from './dist/index.mjs'
+
 
     const threads = new Threads(4)
 
-    function test1(message) {
-        let counter = message.data ?? 0
+     function test1(message) {
+        let counter = message ?? 0
+
         const rand = Math.random() * .001
         for (let i = 0; i < 500_000_000; i++) {
             counter += i * rand > 10 ? Math.floor(i * rand) : 0
         }
 
-        postMessage(counter)
+       return counter
     }
 
 
-    for (let i = 0; i < 10; i++) {
-        const randThreadIndex = Math.floor(Math.random() * threads.threads.length)
-        threads.push(test1, {index: randThreadIndex})
+
+    for (let i = 0; i < 20; i++) {
+        threads.push(test1, i)
     }
-    console.log('Threads loaded:', threads.threads.map(thread => thread.pool.length))
 
 
     document.querySelector('#run').addEventListener('click', async function () {
         this.classList.add('running')
         this.innerText = 'Running...'
 
+
         ///////////////////// Main part begin
         console.time('Execution took')
-        const progress = {
-            counter: 0,
-            totalTasks: threads.taskCount,
-            callback: (_) => {
-                const percentage = Math.round((++progress.counter / progress.totalTasks) * 100)
 
-                const progressEl = document.getElementById('progress')
-                if (percentage === 100) progressEl.classList.add('done')
-                progressEl.style.width = percentage + '%'
+        console.log("Result:", await threads.execute({
+            step: (message, index, totalLength) => {
+                document.querySelector('#progress').style.width = (100 / totalLength * (index + 1)) + '%'
             }
-        }
+        }))
 
-        const promises = [
-            threads.execute({
-                index: 0,
-                mode: 'chained',
-                stepCallback: progress.callback
-            }).then(),
-            threads.execute({
-                stepCallback: progress.callback
-            }).then(),
-        ]
-        console.log('Result:', await Promise.all(promises))
         console.timeEnd('Execution took')
-
         ///////////////////// Main part end
 
-        this.classList.replace('running','done')
+        document.querySelector('#progress').style.width = '100%'
+        this.classList.replace('running', 'done')
         this.innerText = 'Done'
     }, {once: true})
 
+
+    window.threads = threads
 </script>
 </body>
 </html>
+

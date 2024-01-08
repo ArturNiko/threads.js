@@ -1,121 +1,91 @@
-import Thread, {AllExecuteOptionsInterface, WorkerWrapper, ExecutionMode, State as ThreadState} from './Thread'
+import Thread, {TaskState, Task} from './Thread'
 
-interface TaskOptionsInterface {
-    message?: any,
-    index?: number
+export interface ExecuteOptions {
+    step?: (message: any, index: number, totalLength: number) => void
 }
 
-interface OptionsInterface {
-    executionMode?: ExecutionMode,
-}
 
 interface ThreadsInterface {
-    execute(options?: AllExecuteOptionsInterface): Promise<any>
+    push(callback: Function, message?: any): this
 
-    push(task: Function, options?: TaskOptionsInterface): this | false
+    execute(options: ExecuteOptions): Promise<any[]>
 
-    get threads(): Thread[]
+    run(index: number, task: Function, message?: any): Promise<any>
 
-    get taskCount(): number
+    get poolSize(): number
 
+    get threadsCount(): number
 }
 
 export default class Threads implements ThreadsInterface {
     readonly #threadCount: number
     readonly #threads: Thread[] = []
+    readonly #pool: Task[] = []
 
 
-    constructor(threadCount: number, options?: OptionsInterface) {
-        this.#threadCount = Math.min(threadCount, navigator.hardwareConcurrency ? navigator.hardwareConcurrency - 1 : 3)
+    constructor(threadCount: number = 3) {
+        this.#threadCount = Math.max(1, Math.min(threadCount, navigator.hardwareConcurrency * 2 - 1))
 
         // Create threads
         let index: number = 0
         this.#threads = [...Array(this.#threadCount)].map(() => {
-            return new Thread(index++, options?.executionMode)
+            return new Thread(index++)
         })
     }
 
-    async execute(options?: AllExecuteOptionsInterface): Promise<any[] | undefined> {
-        if (options?.index !== undefined) {
-            if(this.#threads[options.index] === undefined) console.warn(`Execution: Thread with index ${options.index} does not exist`)
-            return this.#threads[options.index]?.execute({mode: options?.mode, stepCallback: options?.stepCallback})
-        }
-
-
-        return this.#flattenFinalResponse(await Promise.all([
-            ...this.#threads
-                .filter(thread => thread.pool.length > 0 && thread.state === ThreadState.IDLE)
-                .map(thread => thread.execute({mode: options?.mode, stepCallback: options?.stepCallback}))
-        ]))
-    }
-
-    push(task: Function, options?: TaskOptionsInterface): this {
-        const worker: Worker = this.#createWorker(task.toString())
-
-        if (options?.index !== undefined) {
-            if(this.#threads[options.index] === undefined) console.warn(`Push: Thread with index ${options.index} does not exist`)
-            this.#threads[options.index]?.push(worker, options?.message)
-        }
-        else this.#sortPush(worker, options?.message)
+    push(task: Function, message?: any): this {
+        this.#pool.push({
+            task,
+            message,
+            index: this.#pool.length,
+            state: TaskState.PENDING
+        })
 
         return this
     }
 
-    #sortPush(worker: Worker, message?: any): void {
-        // Find the thread with the least amount of workers
-        const availableThreads: Thread[] = this.#threads.filter(thread => thread.state === ThreadState.IDLE)
-
-        if (availableThreads.length === 0) {
-            console.warn(`Push: No available threads`)
-            return
+    async execute(options: ExecuteOptions): Promise<any[]> {
+        if (this.#pool.length === 0) {
+            console.warn(`No tasks to execute`)
+            return []
         }
 
-        const thread: Thread = availableThreads.reduce((thread1: Thread, Thread: Thread) => thread1.pool.length > Thread.pool.length ? Thread : thread1)
+        const pool: Task[] = this.#pool.splice(0, this.#pool.length)
 
-        thread.push(worker, message)
+        const promises: Promise<any>[] = this.#threads.map((thread: Thread) => {
+            // Reference of the pool is passed to each thread
+            return thread.execute(pool, options)
+        })
+
+        // Wait for all threads to finish and flatten the responses
+        return await Promise.all(promises).then((responses: any[][]) => this.#mergeResponses(responses))
     }
 
-    #flattenFinalResponse(response: any[][]): any[] {
-        const finalResponse: any[] = []
-        const longestThreadLength: number = response.reduce((longestLength: number, pool: any[]) => pool.length > longestLength ? pool.length : longestLength, 0)
+    async run(index: number, task: Function, message?: any): Promise<any> {
+        const pool: Task[] = [{
+            task,
+            message,
+            index: this.#pool.length,
+            state: TaskState.PENDING
+        }]
 
-        for (let i = 0; i < longestThreadLength; i++) {
-            response.forEach(threadResponse => {
-                //The thread may have fewer responses than the longest thread or may contain falsy values
-                if (threadResponse.length > i) finalResponse.push(threadResponse[i])
+        return await this.#threads[index].execute(pool, {})
+    }
+
+    #mergeResponses(responses: any[][]): any[] {
+        return responses.reduce((merged, response) => {
+            response.forEach((value, index) => {
+                if (value !== undefined) merged[index] = value
             })
-        }
-
-
-        return finalResponse
+            return merged
+        }, responses[0])
     }
 
-    #createWorker(method: string): Worker {
-        const bytes: Uint8Array = new TextEncoder().encode(`self.onmessage = ${method}`)
-        const blob: Blob = new Blob([bytes], {type: 'application/javascript'})
-        const url: string = URL.createObjectURL(blob)
-        const worker: Worker = new Worker(url)
-
-        worker.onmessage = async (message: MessageEvent): Promise<void> => {
-            this.#threads.forEach((thread: Thread) => {
-                thread.pool.forEach((workerWrapper: WorkerWrapper) => {
-                    if (workerWrapper.worker === worker) workerWrapper.callback!(message.data)
-                })
-            })
-        }
-
-        worker.onerror = (error: ErrorEvent): void => {
-            console.error(error)
-        }
-
-        return worker
+    get poolSize(): number {
+        return this.#pool.length
     }
 
-    get threads(): Thread[] {
-        return this.#threads
-    }
-
-    get taskCount(): number {
-        return this.#threads.reduce((count: number, thread: Thread) => count + thread.pool.length, 0)
+    get threadsCount(): number {
+        return this.#threads.length
     }
 }
