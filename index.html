@@ -85,12 +85,10 @@
 
 <script type="module">
 
-    import Threads, {TaskType, ExecutionMode, Threads2} from './dist/index.mjs'
+    import  {Threads2} from './dist/index.mjs'
 
-   // const threads = new Threads(4)
 
-    //const threads2 = new Threads2(4)
-    const threads = new Threads(4)
+    const threads2 = new Threads2(4)
 
     function test1(message) {
         let counter = message.data ?? 0
@@ -102,14 +100,6 @@
         postMessage(counter)
     }
 
-    function liveTest(message) {
-
-        message += 1
-
-        postMessage(message)
-    }
-
-    //const liveWorker = threads.stream(0)
 
 
     document.querySelector('#run').addEventListener('click', async function () {
@@ -118,26 +108,9 @@
 
 
         ///////////////////// Main part begin
-        console.log('Threads')
-        console.time('Execution took. ')
+        console.time('Execution took')
 
-        for (let i = 0; i < 10; i++) {
-            threads.sortIn(test1, {message: i})
-            //threads.sortIn(test1, {message: i})
-        }
-
-
-        await threads.execute()
-
-
-        console.timeEnd('Execution took')
-
-        console.log('Threads')
-        /*
-        console.log('Threads2')
-        console.time('Execution took. ')
-
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 20; i++) {
             threads2.push(test1, {message: i})
             //threads.sortIn(test1, {message: i})
             //threads.sortIn(test1, {message: i})
@@ -148,7 +121,6 @@
 
 
         console.timeEnd('Execution took')
-        */
         ///////////////////// Main part end
 
         this.classList.replace('running', 'done')
@@ -157,3 +129,4 @@
 </script>
 </body>
 </html>
+
