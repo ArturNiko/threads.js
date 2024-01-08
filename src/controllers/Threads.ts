@@ -10,8 +10,11 @@ interface ThreadsInterface {
 
     execute(options: ExecuteOptions): Promise<any[]>
 
-    readonly threads: Thread[]
-    readonly pool: Task[]
+    run(index: number, task: Function, message?: any): Promise<any>
+
+    get poolSize(): number
+
+    get threadsCount(): number
 }
 
 export default class Threads implements ThreadsInterface {
@@ -21,7 +24,7 @@ export default class Threads implements ThreadsInterface {
 
 
     constructor(threadCount: number = 3) {
-        this.#threadCount = Math.max(1, Math.min(threadCount, navigator.hardwareConcurrency - 1))
+        this.#threadCount = Math.max(1, Math.min(threadCount, navigator.hardwareConcurrency * 2 - 1))
 
         // Create threads
         let index: number = 0
@@ -30,9 +33,9 @@ export default class Threads implements ThreadsInterface {
         })
     }
 
-    push(callback: Function, message?: any): this {
+    push(task: Function, message?: any): this {
         this.#pool.push({
-            callback,
+            task,
             message,
             index: this.#pool.length,
             state: TaskState.PENDING
@@ -56,24 +59,33 @@ export default class Threads implements ThreadsInterface {
 
         // Wait for all threads to finish and flatten the responses
         return await Promise.all(promises).then((responses: any[][]) => this.#mergeResponses(responses))
+    }
 
+    async run(index: number, task: Function, message?: any): Promise<any> {
+        const pool: Task[] = [{
+            task,
+            message,
+            index: this.#pool.length,
+            state: TaskState.PENDING
+        }]
+
+        return await this.#threads[index].execute(pool, {})
     }
 
     #mergeResponses(responses: any[][]): any[] {
-        for (let i = 0; i < responses[0].length; i++) {
-            for (let j = 1; j < responses.length; j++) {
-                if (responses[j][i] !== undefined) responses[0][i] = responses[j][i]
-            }
-        }
-
-        return responses[0]
+        return responses.reduce((merged, response) => {
+            response.forEach((value, index) => {
+                if (value !== undefined) merged[index] = value
+            })
+            return merged
+        }, responses[0])
     }
 
-    get threads(): Thread[] {
-        return this.#threads
+    get poolSize(): number {
+        return this.#pool.length
     }
 
-    get pool(): Task[] {
-        return this.#pool
+    get threadsCount(): number {
+        return this.#threads.length
     }
 }
