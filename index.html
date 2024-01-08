@@ -91,15 +91,19 @@
     const threads2 = new Threads(4)
 
     function test1(message) {
-        let counter = message.data ?? 0
+        let counter = message ?? 0
         const rand = Math.random() * .001
         for (let i = 0; i < 500_000_000; i++) {
             counter += i * rand > 10 ? Math.floor(i * rand) : 0
         }
 
-        postMessage(counter)
+        return counter
     }
 
+
+    for (let i = 0; i < 20; i++) {
+        threads2.push(test1, i)
+    }
 
 
     document.querySelector('#run').addEventListener('click', async function () {
@@ -109,13 +113,6 @@
 
         ///////////////////// Main part begin
         console.time('Execution took')
-
-        for (let i = 0; i < 20; i++) {
-            threads2.push(test1, i)
-            //threads.sortIn(test1, {message: i})
-            //threads.sortIn(test1, {message: i})
-        }
-
 
         console.log("Result:", await threads2.execute({
             step: (message, index, totalLength) => {

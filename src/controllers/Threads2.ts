@@ -124,13 +124,8 @@ export class LiveWorker {
 
     constructor() {
         const bytes: Uint8Array = new TextEncoder().encode(`
-            function JSONValidate(variable) {
-                try {
-                    JSON.parse(variable)
-                } catch (e) {
-                    return false
-                }
-                return true
+            async function handle(taskResponse) {
+                postMessage(await taskResponse)
             }
         
             self.onmessage = (message) => {
@@ -138,7 +133,7 @@ export class LiveWorker {
            
                 switch (data.command) {
                     case 'run':
-                        eval(\`(\${data.task})(\${data.value})\`)
+                        handle(eval(\`(\${data.task})(\${data.value})\`))
                         break
                     case 'terminate':
                         postMessage('terminated')
