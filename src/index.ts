@@ -1,3 +1,3 @@
-import Threads from './controllers/Threads2'
+import Threads from './controllers/Threads'
 
 export default Threads

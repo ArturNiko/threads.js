@@ -90,14 +90,16 @@
 
     const threads2 = new Threads(4)
 
-    function test1(message) {
+     function test1(message) {
+        console.time('test1')
         let counter = message ?? 0
         const rand = Math.random() * .001
         for (let i = 0; i < 500_000_000; i++) {
             counter += i * rand > 10 ? Math.floor(i * rand) : 0
         }
+        console.timeEnd('test1')
 
-        return counter
+       return counter
     }
 
 
@@ -116,7 +118,6 @@
 
         console.log("Result:", await threads2.execute({
             step: (message, index, totalLength) => {
-                console.log(index)
                 document.querySelector('#progress').style.width = (100 / totalLength * (index + 1)) + '%'
             }
         }))
@@ -124,6 +125,7 @@
         console.timeEnd('Execution took')
         ///////////////////// Main part end
 
+        document.querySelector('#progress').style.width = '100%'
         this.classList.replace('running', 'done')
         this.innerText = 'Done'
     }, {once: true})
