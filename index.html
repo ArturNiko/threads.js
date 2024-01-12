@@ -88,21 +88,24 @@
     import Threads from './dist/index.mjs'
 
 
-    const threads = new Threads(4)
+    const threads = new Threads(8)
 
-     function test1(message) {
+
+
+    function test2(message) {
+        return message + 1
+    }
+    threads.insert(test2, 0, 1).insert(test2, 0).insert(test2, 0).insert(test2, 0)
+
+    function test1(message) {
         let counter = message ?? 0
-
         const rand = Math.random() * .001
         for (let i = 0; i < 500_000_000; i++) {
             counter += i * rand > 10 ? Math.floor(i * rand) : 0
         }
 
-       return counter
+        return counter
     }
-
-
-
     for (let i = 0; i < 20; i++) {
         threads.push(test1, i)
     }
@@ -116,10 +119,12 @@
         ///////////////////// Main part begin
         console.time('Execution took')
 
-        console.log("Result:", await threads.execute({
+        console.log('Result:', await threads.execute({
+            tasksRelation: 'chained',
+            threadIndex: 0,
             step: (message, index, totalLength) => {
                 document.querySelector('#progress').style.width = (100 / totalLength * (index + 1)) + '%'
-            }
+            },
         }))
 
         console.timeEnd('Execution took')
