@@ -1,13 +1,5 @@
-enum Command {
-    RUN = 'run',
-    TERMINATE = 'terminate',
-}
+import LiveWorkerInterface, {Command} from '../../types/threads/LiveWorker'
 
-interface LiveWorkerInterface {
-    run(task: Function, value?: any): Promise<any>
-
-    terminate(): void
-}
 
 export default class LiveWorker implements LiveWorkerInterface {
     readonly #worker: Worker
@@ -19,14 +11,14 @@ export default class LiveWorker implements LiveWorkerInterface {
             async function handle(taskResponse) {
                 postMessage(await taskResponse)
             }
-        
+            
             self.onmessage = (message) => {
                 const data = message.data
-                
                 
                 switch (data.command) {
                     case 'run':
                         try {
+                            // Dynamically create the function from the string
                             const fn = new Function('return ' + data.task)()
                             handle(fn(data.value))
                         } catch (error) {
@@ -43,8 +35,8 @@ export default class LiveWorker implements LiveWorkerInterface {
         const url: string = URL.createObjectURL(blob)
         this.#worker = new Worker(url)
 
-
         this.#worker.onmessage = (message: MessageEvent): void => {
+            // Call the callback with the response (callback is overwritten in the run method)
             this.#callback(message.data)
         }
         this.#worker.onerror = console.error
@@ -53,6 +45,7 @@ export default class LiveWorker implements LiveWorkerInterface {
 
     async run(task: Function, value?: any): Promise<any> {
         const response = new Promise<any>((resolve) => {
+            // Overwrite the callback to resolve the promise
             this.#callback = (message: any) => {
                 resolve(message)
             }

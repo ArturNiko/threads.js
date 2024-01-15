@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
+    "target": "ES2019",
     "useDefineForClassFields": true,
     "lib": ["DOM", "ES2017", "ES2019.Array"],
     "strict": true,
