@@ -1,13 +1,5 @@
-enum Command {
-    RUN = 'run',
-    TERMINATE = 'terminate',
-}
+import LiveWorkerInterface, {Command} from '../../types/threads/LiveWorker'
 
-interface LiveWorkerInterface {
-    run(task: Function, value?: any): Promise<any>
-
-    terminate(): void
-}
 
 export default class LiveWorker implements LiveWorkerInterface {
     readonly #worker: Worker

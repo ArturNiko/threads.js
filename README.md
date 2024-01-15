@@ -8,7 +8,8 @@
  - [**Running**](#running)
    - [**Push**](#push)
    - [**Execute**](#execute)
- - [**Note**](#note)
+   - [**Note**](#note)
+ - [**Getters**](#getters)
 
 ### Installation
 
@@ -32,7 +33,7 @@ The sequence of running tasks on different threads is straightforward.
 - Secondly, execute tasks and wait for the response.
 
 #### Push
-Here is the showcase of pushing
+Here is the showcase of pushing:
 ```typescript
     function test(message) {
         let parameter = message
@@ -43,42 +44,98 @@ Here is the showcase of pushing
     /**
      *  @param task: Function, message?: any
      *  @return this
+     *  @description Push task
      *
     */
 
     // Push task with message
     threads.push(test, 10)
-```
 
-#### Execute
-Here is the showcase of execution
-```typescript
-   interface ExecuteOptionsInterface {
-        // Callback function called after each task is executed
-        step?: Function
-    }
-    
+
     /**
-     *  @param options?: ExecuteOptionsInterface
-     *  @return Promise<any[]|void>
+     *  @param task: Function, threadIndex: number, message?: any
+     *  @return this
+     *  @description Push task on specific thread
+     * 
+    */
+    
+    threads.insert(test, 0, 10) 
+
+    /**
+     *  @param threadIndex: number
+     *  @return this
+     *  @description Block thread. No tasks will be inserted on this thread
      *
     */
     
+    // Block thread. No tasks will be inserted on this thread
+    // Unblocks itself after the thread is executed
+    // @note: Executes only inserted tasks on this thread!
+    threads.block(0)
+```
+
+#### Execute
+Here is the showcase of execution:
+```typescript
+   enum TasksRelation {
+    // No relation between tasks
+    NONE = 'none',
+    // Message of the next task is the response of the previous task
+    CHAINED = 'chained'
+}
+
+interface ExecuteOptionsInterface {
+    // Callback function called after each task is executed
+    step?: Function
+    // Specifies the relation between tasks
+    tasksRelation?: TasksRelation 
+}
+
+/**
+ *  @param options?: ExecuteOptionsInterface
+ *  @return Promise<any[]|void>
+ *  @description Executes all tasks in the pool on all threads
+ */
+
+await threads.executeAll({
+    tasksRelation: 'chained',
     /**
-    * @param message: any // Executed task response
-    * @param index: number // Index of executed task
-    * @param totalLength: number // Total number of tasks
-    */
-    
-    // Execute all tasks on all threads with callback function
-    await threads.execute({step: (message, index, totalLength) => console.log(response)})
+     * @param message: any // Executed task response
+     * @param progress: number // Progress of execution (0-100)
+     *
+     */
+    step: (response, progress) => console.log(response)
+})
+
+
+/**
+ *  @param threadIndex: number, options?: ExecuteOptionsInterface
+ *  @return Promise<any[]|void>
+ *  @description Executes specified tasks in the pool on specified thread
+ */
+
+await threads.execute(0, {
+    step: (response, progress) => console.log(response)
+})
 
 ```
 
-### Note
+#### Note
 - If you want to execute tasks in a specific order, you have to push them in that order.
-- Currently, tasks chaining execution mode is not working.
-  - If you want to use it, you can simply roll back to the older version 1.2.1 of this package.
 
-   
-   
+### Getters
+```typescript
+
+interface Getters {
+    // Returns an array of tasks
+    get pool(): number
+
+    // Returns thread load
+    get threadLoad(): ThreadLoad
+
+    // Returns the number of threads
+    get threadCount(): number
+}
+
+```
+

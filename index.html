@@ -93,9 +93,10 @@
 
 
     function test2(message) {
-        return message + 1
+        return (message ?? 0) + 1
     }
-    threads.insert(test2, 0, 1).insert(test2, 0).insert(test2, 0).insert(test2, 0)
+    threads.insert(test2, 0, 0).insert(test2, 0).insert(test2, 0).insert(test2, 0).insert(test2, 0).block(0)
+
 
     function test1(message) {
         let counter = message ?? 0
@@ -107,30 +108,36 @@
         return counter
     }
     for (let i = 0; i < 20; i++) {
-        threads.push(test1, i)
+        threads.push(test1)
     }
 
+    console.log('Thread Load:', threads.threadLoad)
 
     document.querySelector('#run').addEventListener('click', async function () {
         this.classList.add('running')
         this.innerText = 'Running...'
 
-
-        ///////////////////// Main part begin
         console.time('Execution took')
 
-        console.log('Result:', await threads.execute({
-            tasksRelation: 'chained',
-            threadIndex: 0,
-            step: (message, index, totalLength) => {
-                document.querySelector('#progress').style.width = (100 / totalLength * (index + 1)) + '%'
-            },
-        }))
+        const result1 = threads.run(test1, 0)
 
+        const result2 = threads.execute(0, {
+                tasksRelation: 'chained'
+            }
+        )
+
+        const result3 = threads.executeAll({
+                step: (message, progress) => {
+                    document.querySelector('#progress').style.width = (progress) + '%'
+                },
+            }
+        )
+
+        const promises = Promise.all([result1, result2, result3])
+
+        console.log('Result:', await promises)
         console.timeEnd('Execution took')
-        ///////////////////// Main part end
 
-        document.querySelector('#progress').style.width = '100%'
         this.classList.replace('running', 'done')
         this.innerText = 'Done'
     }, {once: true})
