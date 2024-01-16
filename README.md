@@ -22,86 +22,58 @@
 ```typescript
     import Threads from '@a4turp/threads.js'
 
-   
-    // Maximum number of threads is navigator.hardwareConcurrency * 2 - 1 || 3
-    const threads = new Threads(navigator.hardwareConcurrency)
+    // Maximum number of threads is navigator.hardwareConcurrency * 2 - 1
+    // Set the maximum number of threads
+    const threads = new Threads(12)
 ```
 
 ### Running
 The sequence of running tasks on different threads is straightforward.
-- Firstly, push tasks and their parameters (message) into the pool.
+- Firstly, prepare the data to pass into threads.
 - Secondly, execute tasks and wait for the response.
 
-#### Push
-Here is the showcase of pushing:
+#### Preparation
+Here is the showcase of data preparation:
+
 ```typescript
-    function test(message) {
-        let parameter = message
-        //Do whatever you want
-        return message + 10
-    }
-    
-    /**
-     *  @param task: Function, message?: any
-     *  @return this
-     *  @description Push task
-     *
-    */
+import {stringifyQuery} from "ufo";
 
-    // Push task with message
-    threads.push(test, 10)
+function square(message) {
+   return message * message
+}
 
-
-    /**
-     *  @param task: Function, threadIndex: number, message?: any
-     *  @return this
-     *  @description Push task on specific thread
-     * 
-    */
-    
-    threads.insert(test, 0, 10) 
-
-    /**
-     *  @param threadIndex: number
-     *  @return this
-     *  @description Block thread. No tasks will be inserted on this thread
-     *
-    */
-    
-    // Block thread. No tasks will be inserted on this thread
-    // Unblocks itself after the thread is executed
-    // @note: Executes only inserted tasks on this thread!
-    threads.block(0)
+// Data for parallel and sequential execution
+// Data for parallel execution can include a message for each task
+const dataParallel = [{method: square, message: 20}, {method: square}, {method: square, message: 0}]
 ```
 
 #### Execute
 Here is the showcase of execution:
 ```typescript
-   enum TasksRelation {
-    // No relation between tasks
-    NONE = 'none',
-    // Message of the next task is the response of the previous task
-    CHAINED = 'chained'
+enum ResponseType {
+    ALL = 'ALL',                    // Returns all responses
+    LAST = 'LAST'                   // Returns only the last response
 }
 
 interface ExecuteOptionsInterface {
-    // Callback function called after each task is executed
-    step?: Function
-    // Specifies the relation between tasks
-    tasksRelation?: TasksRelation 
+    step?: Function                 // Callback function called after each task is executed
+    threadCount?: TasksRelation     // Maximum number of threads to execute tasks on
+    response: ResponseType          // Response type
 }
 
 /**
- *  @param options?: ExecuteOptionsInterface
- *  @return Promise<any[]|void>
- *  @description Executes all tasks in the pool on all threads
+ *  @param                          options?: ExecuteOptionsInterface
+ *  @return                         Promise<any[]|void>
+ *  @description                    Executes all tasks in the pool on all threads
  */
 
-await threads.executeAll({
-    tasksRelation: 'chained',
+await threads.executeParallel({
+    threadCount: 4,
+    response: ResponseType.ALL,
+       
     /**
-     * @param message: any // Executed task response
-     * @param progress: number // Progress of execution (0-100)
+     * @param                       response: any         Executed task response
+     * @param                       progress: number      Progress of execution (0-100)
      *
      */
     step: (response, progress) => console.log(response)
@@ -109,33 +81,53 @@ await threads.executeAll({
 
 
 /**
- *  @param threadIndex: number, options?: ExecuteOptionsInterface
- *  @return Promise<any[]|void>
- *  @description Executes specified tasks in the pool on specified thread
+ *  @param                          threadIndex: number, options?: ExecuteOptionsInterface
+ *  @return                         Promise<any[]|void>
+ *  @description                    Executes specified tasks in the pool on specified thread
  */
 
 await threads.execute(0, {
     step: (response, progress) => console.log(response)
 })
-
 ```
 
 #### Note
 - If you want to execute tasks in a specific order, you have to push them in that order.
 
+### Methods
+```typescript
+
+/**
+ *  @param          threadIndex: number
+ *  @return         this
+ *  @description    Block specific thread. No more tasks will be inserted on this thread
+ *                  Blocked   
+ *                  Unblocks itself after the thread is executed
+ *  @note           Executes only inserted tasks on this thread!
+ */
+
+threads.block(0)
+
+
+/**
+ *  @param          threadIndex: number
+ *  @return         this
+ *  @description    Terminate all threads (with thier live workers) and clear the pool
+ *  @note           Awaits for all threads to finish their tasks
+ */
+
+threads.dispose()
+```
+
 ### Getters
 ```typescript
 
 interface Getters {
-    // Returns an array of tasks
-    get pool(): number
-
-    // Returns thread load
-    get threadLoad(): ThreadLoad
-
-    // Returns the number of threads
-    get threadCount(): number
+    get pool(): number              // Returns an array of tasks
+   
+    get threadLoad(): ThreadLoad    // Returns thread load
+   
+    get threadCount(): number       // Returns the number of threads
 }
 
 ```
-

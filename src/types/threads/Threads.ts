@@ -1,33 +1,39 @@
-import {Task, Settings} from './Thread'
-
 export default interface ThreadsInterface {
-    push(task: Function, message?: any): this
+    executeSequential(methods: Task[], options?: Options): Promise<any[]>
 
-    insert(task: Function, threadIndex: number, message?: any): this
+    executeParallel(tasks: Task[], options?: Options): Promise<any[]|any>
 
-    executeAll(options?: ExecuteOptions): Promise<any[]>
+    dispose(): void
 
-    execute(threadIndex: number, options?: ExecuteOptions): Promise<any[]>
-
-    run(task: Function, message?: any): Promise<any>
-
-    clear(): void
-
-    block(threadIndex: number): void
-
-    get pool(): Task[]
-
-    get threadLoad(): ThreadLoad
-
-    get threadCount(): number
+    set maxThreadCount(maxThreadsCount: number)
 }
 
-export interface ExecuteOptions extends Settings {
-    step?: (message: any, progress: number) => void
+
+export interface Task {
+    index: number
+    method: Function
+    message?: any
+}
+
+export interface TransferData {
+    pool: (Task|Function)[]
     poolSize?: number
     responses?: any[]
+    step?: Callback
 }
 
-export interface ThreadLoad {
-    [key: string]: number
+export interface Options {
+    step?: Callback
+    response?: ResponseType
+    threads?: number
 }
+
+
+export enum ResponseType {
+    FULL = 'full',
+    LAST = 'last',
+}
+
+
+type Callback = (message: any, progress: number) => void
+

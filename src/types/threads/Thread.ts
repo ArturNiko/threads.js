@@ -1,43 +1,22 @@
-import {ExecuteOptions} from './Threads'
+import {TransferData} from './Threads'
+
 
 export default interface ThreadInterface {
-    execute(pool: Task[], options?: ExecuteOptions): Promise<any[]>
+    execute(data: TransferData): Promise<any[]>
 
-    block(): void
+    terminate(): void
 
-    get state(): State
+    state: State
 }
 
-export interface Settings {
-    tasksRelation: TasksRelation
-}
-
-export interface Task {
-    task: Function
-    message?: any
-    index: number
-    //state: TaskState
-    threadIndex?: number
-}
 
 export enum State {
     IDLE = 'idle',
-    BLOCKED = 'blocked',
     RUNNING = 'running'
 }
 
-
-/*
-export enum TaskState {
-    READY = 'ready',
-    PENDING = 'pending',
-    RESOLVED = 'resolved',
-    REJECTED = 'rejected',
-}
-*/
-
-export enum TasksRelation {
-    'NONE' = 'none',
-    'CHAINED' = 'chained',
+export enum Mode {
+    PARALLEL = 'parallel',
+    SEQUENTIAL = 'sequential',
 }
 

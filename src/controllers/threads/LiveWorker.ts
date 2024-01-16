@@ -44,18 +44,19 @@ export default class LiveWorker implements LiveWorkerInterface {
 
 
     async run(task: Function, value?: any): Promise<any> {
-        const response = new Promise<any>((resolve) => {
+        const response: Promise<any> = new Promise<any>((resolve) => {
             // Overwrite the callback to resolve the promise
             this.#callback = (message: any) => {
                 resolve(message)
             }
         })
+
         this.#worker.postMessage({command: Command.RUN, task: task.toString(), value})
 
         return await response
     }
 
-    terminate() {
+    terminate(): void {
         this.#worker.postMessage({command: Command.TERMINATE})
     }
 }

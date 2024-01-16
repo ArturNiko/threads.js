@@ -1,145 +1,104 @@
-import ThreadsInterface, {ExecuteOptions, ThreadLoad} from '../../types/threads/Threads'
+import ThreadsInterface, {TransferData, Task, Options, ResponseType} from '../../types/threads/Threads'
+import {Mode as ThreadMode, State as ThreadState} from '../../types/threads/Thread'
 
 import Thread from './Thread'
-import {Task, Settings, State as ThreadState} from '../../types/threads/Thread'
 
-import LiveWorker from './LiveWorker'
+
 
 export default class Threads implements ThreadsInterface {
-    readonly #threadCount: number
-    readonly #threads: Thread[] = []
-    readonly #pool: Task[] = []
+    readonly #pools: Task[] = []
+
+    #maxThreadCount: number = 3
+    #threads: Thread[] = []
 
 
-    constructor(threadCount: number = 3, settings?: Settings) {
-        this.#threadCount = Math.max(1, Math.min(threadCount, navigator.hardwareConcurrency * 2 - 1))
-
-        // Create threads
-        let index: number = 0
-        this.#threads = [...Array(this.#threadCount)].map(() => {
-            return new Thread(index++, settings)
-        })
+    constructor(maxThreads: number = 3) {
+        this.maxThreadCount = maxThreads
     }
 
-    push(task: Function, message?: any): this {
-        this.#pool.push({
-            task,
-            message,
-            index: this.#pool.length,
-            //state: TaskState.PENDING,
-        })
+    async executeSequential(tasks: Task[], options: Omit<Options, 'threads'> = {}): Promise<any[]> {
+        await this.#checkThreadCount()
 
-        return this
-    }
+        const thread: Thread = new Thread(ThreadMode.SEQUENTIAL)
+        this.#threads.push(thread)
 
-    insert(task: Function, threadIndex: number, message?: any): this {
-        if(!this.#threads[threadIndex]) {
-            console.warn(`Thread ${threadIndex} does not exist`)
-            return this
-        }
-        if(this.#threads[threadIndex]?.state === ThreadState.BLOCKED) {
-            console.warn(`Thread ${threadIndex} is blocked. Execute the thread to unblock it`)
-            return this
-        }
-
-        this.#pool.push({
-            task,
-            message,
-            index: this.#pool.length,
-            threadIndex
+        console.log(tasks)
+        const result: any[] = await thread.execute({
+            pool: this.#prepareTasks(tasks),
+            step: options.step
         })
 
-        return this
+        this.dispose()
+
+        return options.response === ResponseType.LAST ? result[result.length - 1] : result
     }
 
-    async executeAll(options?: ExecuteOptions): Promise<any[]> {
-        if (this.#pool.length === 0) {
-            console.warn(`No tasks to execute`)
-            return []
+    async executeParallel(tasks: Task[], options: Options = {}): Promise<any[]|any> {
+        await this.#checkThreadCount()
+
+        const threadsToSpawn: number = Math.min(options.threads ?? this.#maxThreadCount, tasks.length)
+
+        const syncedData: TransferData = {
+            pool: this.#prepareTasks(tasks),
+            poolSize: tasks.length,
+            responses: [],
+            step: options.step
         }
 
-        // Get all tasks
-        const pool: Task[] = [...this.#pool.splice(0, this.#pool.length)]
+        const promises: Promise<any>[] = []
+        for (let i = 0; i < threadsToSpawn; i++) {
+            const thread: Thread = new Thread(ThreadMode.PARALLEL)
+            this.#threads.push(thread)
 
-        //@todo: rework this
-        // Ugly syncing pool size for the threads 😩
-        const syncOptions: ExecuteOptions = Object.assign({poolSize: pool.length, responses: []}, options)
-        const promises: Promise<any>[] = this.#threads.map((thread: Thread) => thread.execute(pool, syncOptions))
+            promises.push(thread.execute(syncedData))
 
-        return await Promise.all(promises).then((responses: any[][]) => this.#mergeResponses(responses))
-    }
-
-    async execute(threadIndex: number, options?: ExecuteOptions): Promise<any[]> {
-        if (!this.#findThreadSpecificPool(threadIndex)) {
-            console.warn(`No tasks to execute`)
-            return []
-        }
-        if (!this.#threads[threadIndex]) {
-            console.warn(`Thread ${threadIndex} does not exist`)
-            return []
         }
 
-        // Get all tasks with the specified thread index
-        const pool: Task[] = []
-        while (this.#findThreadSpecificPool(threadIndex)) {
-            const index: number = this.#findThreadSpecificPool(threadIndex, 'index')
-            pool.push(...this.#pool.splice(index, 1))
+        await Promise.all(promises)
+
+        this.dispose()
+        return options.response === ResponseType.LAST ? syncedData.responses![syncedData.responses!.length - 1] : syncedData.responses
+    }
+
+    dispose(): void {
+        for (let i = 0; i < this.#threads.length; i++) {
+            if(this.#threads[i].state === ThreadState.IDLE) {
+                this.#threads[i].terminate()
+                this.#threads.splice(i, 1)
+                i --
+            }
         }
-
-        // Reindex the pool
-        this.#pool.forEach((task, index) => task.index = index)
-
-        return await this.#threads[threadIndex].execute(pool, options)
     }
 
-    // Creates own thread and executes the task
-    async run(task: Function, message?: any): Promise<any> {
-        const worker: LiveWorker = new LiveWorker()
-        const result: Promise<any> = worker.run(task, message)
-
-        worker.terminate()
-
-        return result
+    async #checkThreadCount(): Promise<void> {
+        if (this.#threads.length > this.#maxThreadCount) await this.#awaitFreeThread()
     }
 
-    clear(): void {
-        this.#pool.length = 0
-    }
-
-    block(threadIndex: number): void {
-        if(!this.#threads[threadIndex]) console.warn(`Thread ${threadIndex} does not exist`)
-        this.#threads[threadIndex]?.block()
-    }
-
-    #mergeResponses(responses: any[][]): any[] {
-        return responses.reduce((merged, response) => {
-            response.forEach((value, index) => {
-                if (value !== undefined) merged[index] = value
+    async #awaitFreeThread(): Promise<void> {
+        return new Promise<void>((resolve) => {
+            const interval = setInterval(() => {
+                if (this.#threads.length < this.#maxThreadCount) {
+                    clearInterval(interval)
+                    resolve()
+                }
             })
-            return merged
-        }, responses[0])
+        })
     }
 
-    #findThreadSpecificPool<T extends string>(threadIndex: number, index?: T): T extends 'index' ? number : Task | undefined {
-        return index === 'index'
-            ? this.#pool.findIndex(task => task.threadIndex === threadIndex) as T extends 'index' ? number : never
-            : this.#pool.find(task => task.threadIndex === threadIndex) as T extends 'index' ? never : Task | undefined
+    #prepareTasks(pool: (Task|Function)[]): Task[] {
+        pool.map((task, index) => {
+            if(task instanceof Function) pool[index] = {index, method: task}
+            else task.index = index
+        })
+
+        return pool as Task[]
     }
 
-    get pool(): Task[] {
-        return this.#pool
+    set maxThreadCount(maxThreadsCount: number) {
+        this.#maxThreadCount = Math.max(1, Math.min(maxThreadsCount ?? this.#maxThreadCount, navigator.hardwareConcurrency * 2 - 1))
     }
 
-    get threadLoad(): ThreadLoad {
-        return this.#pool.reduce((acc, task) => {
-            if (task.threadIndex !== undefined) acc[`Thread ${task.threadIndex}`] = (acc[`Thread ${task.threadIndex}`] ?? 0) + 1
-            else acc['shared'] = (acc['shared'] ?? 0) + 1
-
-            return acc
-        }, {} as ThreadLoad)
-    }
-
-    get threadCount(): number {
-        return this.#threads.length
+    get maxThreadCount(): number {
+        return this.#maxThreadCount
     }
 }
