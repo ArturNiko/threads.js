@@ -30,7 +30,10 @@ or
 ```bash 
     pnpm install --save @a4turp/threads.js
 ```
-
+or
+```bash 
+    yarn add @a4turp/threads.js
+```
 
 ## Initialization
 
