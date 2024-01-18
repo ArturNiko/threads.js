@@ -95,4 +95,3 @@ export default class Threads implements ThreadsInterface {
         return this.#maxThreadCount
     }
 }
-

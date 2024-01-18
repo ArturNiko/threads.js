@@ -1,5 +1,6 @@
 import TaskPoolInterface, {Task} from '../../types/partials/TaskPool'
 
+type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
 
 export default class TaskPool implements TaskPoolInterface {
     #pool: Task[] = []
@@ -9,7 +10,7 @@ export default class TaskPool implements TaskPoolInterface {
         this.maxSize = maxSize ?? this.maxSize
     }
 
-    push(...tasks: (Task | Function)[]): this {
+    push(...tasks: (PartialBy<Task, 'index'> | Function)[]): this {
         if(this.#pool.length + tasks.length > this.maxSize) {
             console.warn('Pool size will exceed max size')
 
@@ -25,7 +26,7 @@ export default class TaskPool implements TaskPoolInterface {
         return this
     }
 
-    insert(index: number, ...tasks: (Task | Function)[]): this {
+    insert(index: number, ...tasks: (PartialBy<Task, 'index'> | Function)[]): this {
         if(this.#pool.length + tasks.length > this.maxSize) {
             console.warn('Pool size will exceed max size')
 
@@ -81,7 +82,7 @@ export default class TaskPool implements TaskPoolInterface {
         return this
     }
 
-    #prepareTasks(pool: (Task | Function)[]): Task[] {
+    #prepareTasks(pool: (PartialBy<Task, 'index'> | Function)[]): Task[] {
         pool.forEach((task, index) => {
             if (typeof task === 'function') pool[index] = {index: 0, method: task}
         })
