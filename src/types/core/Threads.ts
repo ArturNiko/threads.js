@@ -1,7 +1,11 @@
-export default interface ThreadsInterface {
-    executeSequential(methods: Task[], options?: Options): Promise<any[]>
+import {Task} from '../partials/TaskPool'
+import TaskPool from '../../controllers/partials/TaskPool'
 
-    executeParallel(tasks: Task[], options?: Options): Promise<any[]|any>
+
+export default interface ThreadsInterface {
+    executeSequential(taskPool: TaskPool, options?: Options): Promise<any[]>
+
+    executeParallel(taskPool: TaskPool, options?: Options): Promise<any[]|any>
 
     dispose(): void
 
@@ -9,14 +13,8 @@ export default interface ThreadsInterface {
 }
 
 
-export interface Task {
-    index: number
-    method: Function
-    message?: any
-}
-
 export interface TransferData {
-    pool: (Task|Function)[]
+    pool: Task[]
     poolSize?: number
     responses?: any[]
     step?: Callback

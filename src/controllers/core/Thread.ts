@@ -1,7 +1,9 @@
-import ThreadInterface, {Mode, State} from '../../types/threads/Thread'
-import {TransferData, Task} from '../../types/threads/Threads'
+import ThreadInterface, {Mode, State} from '../../types/core/Thread'
+import {TransferData} from '../../types/core/Threads'
+import {Task} from '../../types/partials/TaskPool'
 
 import LiveWorker from './LiveWorker'
+
 
 export default class Thread implements ThreadInterface {
     readonly #worker: LiveWorker = new LiveWorker()
@@ -26,7 +28,7 @@ export default class Thread implements ThreadInterface {
             const task: Task = data.pool.splice(0, 1)[0]
 
             // If the tasks relation is CHAINED, then the message of the next task is the response of the previous task
-            if(this.#mode === Mode.SEQUENTIAL) task.message = responses[task.index - 1] ?? task.message
+            if(this.#mode === Mode.SEQUENTIAL) task.message = task.message ?? responses[task.index - 1]
 
             // Run the task and get the response
             responses[task.index!] = await this.#worker.run(task.method, task.message)

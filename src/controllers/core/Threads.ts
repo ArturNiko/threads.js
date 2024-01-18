@@ -1,13 +1,12 @@
-import ThreadsInterface, {TransferData, Task, Options, ResponseType} from '../../types/threads/Threads'
-import {Mode as ThreadMode, State as ThreadState} from '../../types/threads/Thread'
+import ThreadsInterface, {TransferData, Options, ResponseType} from '../../types/core/Threads'
+import {Mode as ThreadMode, State as ThreadState} from '../../types/core/Thread'
+import {Task} from '../../types/partials/TaskPool'
 
 import Thread from './Thread'
-
+import TaskPool from '../partials/TaskPool'
 
 
 export default class Threads implements ThreadsInterface {
-    readonly #pools: Task[] = []
-
     #maxThreadCount: number = 3
     #threads: Thread[] = []
 
@@ -16,15 +15,14 @@ export default class Threads implements ThreadsInterface {
         this.maxThreadCount = maxThreads
     }
 
-    async executeSequential(tasks: Task[], options: Omit<Options, 'threads'> = {}): Promise<any[]> {
+    async executeSequential(taskPool: TaskPool, options: Omit<Options, 'threads'> = {}): Promise<any[]> {
         await this.#checkThreadCount()
 
         const thread: Thread = new Thread(ThreadMode.SEQUENTIAL)
         this.#threads.push(thread)
 
-        console.log(tasks)
         const result: any[] = await thread.execute({
-            pool: this.#prepareTasks(tasks),
+            pool: taskPool.pool,
             step: options.step
         })
 
@@ -33,17 +31,22 @@ export default class Threads implements ThreadsInterface {
         return options.response === ResponseType.LAST ? result[result.length - 1] : result
     }
 
-    async executeParallel(tasks: Task[], options: Options = {}): Promise<any[]|any> {
+    async executeParallel(taskPool: TaskPool, options: Options = {}): Promise<any[]|any> {
         await this.#checkThreadCount()
 
-        const threadsToSpawn: number = Math.min(options.threads ?? this.#maxThreadCount, tasks.length)
+        const threadsToSpawn: number = Math.min(options.threads ?? this.#maxThreadCount, taskPool.pool.length)
 
+
+        console.log(taskPool.pool[4], taskPool.pool.length, )
         const syncedData: TransferData = {
-            pool: this.#prepareTasks(tasks),
-            poolSize: tasks.length,
+            pool: taskPool.pool,
+            poolSize: taskPool.pool.length,
             responses: [],
             step: options.step
         }
+
+        // Clear the pool
+        taskPool.clear()
 
         const promises: Promise<any>[] = []
         for (let i = 0; i < threadsToSpawn; i++) {
@@ -51,7 +54,6 @@ export default class Threads implements ThreadsInterface {
             this.#threads.push(thread)
 
             promises.push(thread.execute(syncedData))
-
         }
 
         await Promise.all(promises)
@@ -83,15 +85,6 @@ export default class Threads implements ThreadsInterface {
                 }
             })
         })
-    }
-
-    #prepareTasks(pool: (Task|Function)[]): Task[] {
-        pool.map((task, index) => {
-            if(task instanceof Function) pool[index] = {index, method: task}
-            else task.index = index
-        })
-
-        return pool as Task[]
     }
 
     set maxThreadCount(maxThreadsCount: number) {

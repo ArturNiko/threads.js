@@ -85,7 +85,7 @@
 
 <script type="module">
 
-    import Threads from './dist/index.mjs'
+    import Threads, {TaskPool} from './dist/index.mjs'
 
 
     const threads = new Threads(8)
@@ -100,17 +100,16 @@
 
         return counter
     }
-
-    const tasks1 = []
-    for (let i = 0; i < 20; i++) {
-        tasks1.push({method: test1, message: i})
+    const tasks1 = new TaskPool()
+    for (let i = 0; i < 10; i++) {
+        tasks1.push({message: i, tasks: test1}, test1)
     }
+    console.log(tasks1.pool)
 
     function test2(message) {
         return message + 1
     }
-
-    const task2 = [{method: test2, message: 0}, test2, {method: test2, message: 10}, test2, test2]
+    const task2 = new TaskPool().push({method: test2, message: 1}, test2, {method: test2, message: 10}, test2, test2)
 
     document.querySelector('#run').addEventListener('click', async function () {
         this.classList.add('running')
@@ -119,6 +118,7 @@
         console.time('Execution took')
 
         const result1 = await threads.executeSequential(task2)
+
 
         const result2 = threads.executeParallel(tasks1, {
                 step: (message, progress) => document.querySelector('#progress').style.width = (progress) + '%'

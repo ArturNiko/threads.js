@@ -1,4 +1,4 @@
-import LiveWorkerInterface, {Command} from '../../types/threads/LiveWorker'
+import LiveWorkerInterface, {Command} from '../../types/core/LiveWorker'
 
 
 export default class LiveWorker implements LiveWorkerInterface {
