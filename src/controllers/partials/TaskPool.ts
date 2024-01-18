@@ -44,7 +44,7 @@ export default class TaskPool implements TaskPoolInterface {
         return this
     }
 
-    replace(index: number, ...tasks: (Task | Function)[]): this {
+    replace(index: number, ...tasks: (PartialBy<Task, 'index'> | Function)[]): this {
         this.#pool = [
             ...this.#pool.slice(0, index),
             ...this.#prepareTasks(tasks),
