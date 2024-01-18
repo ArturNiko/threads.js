@@ -1,6 +1,5 @@
 import ThreadsInterface, {TransferData, Options, ResponseType} from '../../types/core/Threads'
 import {Mode as ThreadMode, State as ThreadState} from '../../types/core/Thread'
-import {Task} from '../../types/partials/TaskPool'
 
 import Thread from './Thread'
 import TaskPool from '../partials/TaskPool'
@@ -16,7 +15,7 @@ export default class Threads implements ThreadsInterface {
     }
 
     async executeSequential(taskPool: TaskPool, options: Omit<Options, 'threads'> = {}): Promise<any[]> {
-        await this.#checkThreadCount()
+        await this.#checkAvailableThreadSlots()
 
         const thread: Thread = new Thread(ThreadMode.SEQUENTIAL)
         this.#threads.push(thread)
@@ -26,27 +25,24 @@ export default class Threads implements ThreadsInterface {
             step: options.step
         })
 
+        taskPool.clear()
         this.dispose()
 
         return options.response === ResponseType.LAST ? result[result.length - 1] : result
     }
 
     async executeParallel(taskPool: TaskPool, options: Options = {}): Promise<any[]|any> {
-        await this.#checkThreadCount()
+        const threadsPreferableToSpawn: number = Math.max(1, Math.min(options.threads ?? 1, this.maxThreadCount))
+        await this.#checkAvailableThreadSlots(threadsPreferableToSpawn)
 
-        const threadsToSpawn: number = Math.min(options.threads ?? this.#maxThreadCount, taskPool.pool.length)
+        const threadsToSpawn: number = Math.min(threadsPreferableToSpawn, taskPool.pool.length)
 
-
-        console.log(taskPool.pool[4], taskPool.pool.length, )
         const syncedData: TransferData = {
             pool: taskPool.pool,
             poolSize: taskPool.pool.length,
             responses: [],
             step: options.step
         }
-
-        // Clear the pool
-        taskPool.clear()
 
         const promises: Promise<any>[] = []
         for (let i = 0; i < threadsToSpawn; i++) {
@@ -58,7 +54,9 @@ export default class Threads implements ThreadsInterface {
 
         await Promise.all(promises)
 
+        taskPool.clear()
         this.dispose()
+
         return options.response === ResponseType.LAST ? syncedData.responses![syncedData.responses!.length - 1] : syncedData.responses
     }
 
@@ -72,14 +70,14 @@ export default class Threads implements ThreadsInterface {
         }
     }
 
-    async #checkThreadCount(): Promise<void> {
-        if (this.#threads.length > this.#maxThreadCount) await this.#awaitFreeThread()
+    async #checkAvailableThreadSlots(minThreadCount?: number): Promise<void> {
+        if (this.#threads.length > this.#maxThreadCount) await this.#awaitFreeThread(minThreadCount)
     }
 
-    async #awaitFreeThread(): Promise<void> {
+    async #awaitFreeThread(minThreadCount: number = 1): Promise<void> {
         return new Promise<void>((resolve) => {
             const interval = setInterval(() => {
-                if (this.#threads.length < this.#maxThreadCount) {
+                if (this.#maxThreadCount - this.#threads.length >= minThreadCount) {
                     clearInterval(interval)
                     resolve()
                 }

@@ -102,9 +102,8 @@
     }
     const tasks1 = new TaskPool()
     for (let i = 0; i < 10; i++) {
-        tasks1.push({message: i, tasks: test1}, test1)
+        tasks1.push({message: i, method: test1}, test1)
     }
-    console.log(tasks1.pool)
 
     function test2(message) {
         return message + 1
@@ -121,6 +120,7 @@
 
 
         const result2 = threads.executeParallel(tasks1, {
+                threads: 1,
                 step: (message, progress) => document.querySelector('#progress').style.width = (progress) + '%'
             }
         )

@@ -6,8 +6,13 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-pnpm-lock.yaml
 
+# Lock files
+pnpm-lock.yaml
+yarn.lock
+
+
+# Git undesired files
 node_modules
 assets
 dist
