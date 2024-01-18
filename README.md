@@ -18,7 +18,7 @@
 ## Important ⚠️
 
 - This package is getting updated and restructured frequently. Any major changes will bump the minor version.
-- If you have troubles after an update, please check the documentation of the new version or rollback to the previous version.
+- If you have troubles after an update, please check the documentation of the new version or install the previous version.
 
 
 ## Installation
