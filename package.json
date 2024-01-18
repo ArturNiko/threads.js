@@ -19,7 +19,7 @@
     "watch": "pnpm build --watch",
     "dev":   "pnpm build && vite",
     "test": "vitest run ./tests/module.test.mjs",
-    "deploy": "npm publish && yarn publish"
+    "deploy": "npm publish"
   },
   "repository": {
     "type": "git",
