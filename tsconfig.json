@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2019",
     "useDefineForClassFields": true,
-    "lib": ["DOM", "ES2017", "ES2019.Array"],
+    "lib": ["DOM", "ES2017"],
     "strict": true,
     "resolveJsonModule": true,
     "moduleResolution": "node",

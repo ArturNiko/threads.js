@@ -85,17 +85,10 @@
 
 <script type="module">
 
-    import Threads from './dist/index.mjs'
+    import Threads, {TaskPool} from './dist/index.mjs'
 
 
     const threads = new Threads(8)
-
-
-
-    function test2(message) {
-        return (message ?? 0) + 1
-    }
-    threads.insert(test2, 0, 0).insert(test2, 0).insert(test2, 0).insert(test2, 0).insert(test2, 0).block(0)
 
 
     function test1(message) {
@@ -107,11 +100,15 @@
 
         return counter
     }
-    for (let i = 0; i < 20; i++) {
-        threads.push(test1)
+    const tasks1 = new TaskPool()
+    for (let i = 0; i < 10; i++) {
+        tasks1.push({message: i, method: test1}, test1)
     }
 
-    console.log('Thread Load:', threads.threadLoad)
+    function test2(message) {
+        return message + 1
+    }
+    const task2 = new TaskPool().push({method: test2, message: 1}, test2, {method: test2, message: 10}, test2, test2)
 
     document.querySelector('#run').addEventListener('click', async function () {
         this.classList.add('running')
@@ -119,21 +116,16 @@
 
         console.time('Execution took')
 
-        const result1 = threads.run(test1, 0)
+        const result1 = await threads.executeSequential(task2)
 
-        const result2 = threads.execute(0, {
-                tasksRelation: 'chained'
+
+        const result2 = threads.executeParallel(tasks1, {
+                threads: 1,
+                step: (message, progress) => document.querySelector('#progress').style.width = (progress) + '%'
             }
         )
 
-        const result3 = threads.executeAll({
-                step: (message, progress) => {
-                    document.querySelector('#progress').style.width = (progress) + '%'
-                },
-            }
-        )
-
-        const promises = Promise.all([result1, result2, result3])
+        const promises = Promise.all([result1, result2])
 
         console.log('Result:', await promises)
         console.timeEnd('Execution took')
