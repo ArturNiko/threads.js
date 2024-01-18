@@ -32,7 +32,9 @@ export default class Threads implements ThreadsInterface {
     }
 
     async executeParallel(taskPool: TaskPool, options: Options = {}): Promise<any[]|any> {
-        const threadsPreferableToSpawn: number = Math.max(1, Math.min(options.threads ?? 1, this.maxThreadCount))
+        const defaultSlots: number = Math.max(1, this.#maxThreadCount - this.#threads.length)
+        const threadsPreferableToSpawn: number = Math.max(1, Math.min(options.threads ?? defaultSlots, this.maxThreadCount))
+
         await this.#checkAvailableThreadSlots(threadsPreferableToSpawn)
 
         const threadsToSpawn: number = Math.min(threadsPreferableToSpawn, taskPool.pool.length)

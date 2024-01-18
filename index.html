@@ -120,7 +120,6 @@
 
 
         const result2 = threads.executeParallel(tasks1, {
-                threads: 1,
                 step: (message, progress) => document.querySelector('#progress').style.width = (progress) + '%'
             }
         )
