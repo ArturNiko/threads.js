@@ -5,7 +5,11 @@ export default interface TaskPoolInterface {
 
     replace(index: number, ...tasks: (Task | Function)[]): this
 
+    grab(index: number, length?: number): Task[]
+
     pop(): this
+
+    shift(): this
 
     remove(index: number, length?: number): this
 

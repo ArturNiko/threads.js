@@ -3,12 +3,13 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
     build: {
-        target: "es2015",
+        target: "es2019",
     },
     esbuild: {
-        include: ["main.js"]
+        include: ["src/index.ts"]
     },
     test: {
+        globals: true,
         environment: "happy-dom",
     }
 })

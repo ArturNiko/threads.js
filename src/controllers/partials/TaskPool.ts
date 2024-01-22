@@ -44,7 +44,7 @@ export default class TaskPool implements TaskPoolInterface {
         return this
     }
 
-    replace(index: number, ...tasks: (Task | Function)[]): this {
+    replace(index: number, ...tasks: (PartialBy<Task, 'index'> | Function)[]): this {
         this.#pool = [
             ...this.#pool.slice(0, index),
             ...this.#prepareTasks(tasks),
@@ -56,6 +56,14 @@ export default class TaskPool implements TaskPoolInterface {
         return this
     }
 
+    grab(index: number, length: number = 1): Task[] {
+        const grabbedTasks: Task[] = this.#pool.splice(index, length)
+
+        this.#reindexPool()
+
+        return grabbedTasks
+    }
+
     pop(): this {
         this.#pool.pop()
 
@@ -65,10 +73,12 @@ export default class TaskPool implements TaskPoolInterface {
     shift(): this {
         this.#pool.shift()
 
+        this.#reindexPool()
+
         return this
     }
 
-    remove(index: number, length?: number): this {
+    remove(index: number, length: number = 1): this {
         this.#pool.splice(index, length)
 
         this.#reindexPool()
@@ -98,5 +108,10 @@ export default class TaskPool implements TaskPoolInterface {
 
     get pool(): Task[] {
         return this.#pool
+    }
+
+
+    get length(): number {
+        return this.#pool.length
     }
 }

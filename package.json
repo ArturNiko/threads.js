@@ -1,6 +1,6 @@
 {
   "name": "@a4turp/threads.js",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "author": "Artur Papikian",
   "license": "MIT",
   "description": "Light and easy web-tool for accessing multiple threads via web workers.",
@@ -17,8 +17,8 @@
     "clear": "rm -rf ./dist",
     "build": "pnpm clear && tsup src/index.ts --format esm, cjs --dts --clean",
     "watch": "pnpm build --watch",
-    "dev":   "pnpm build && vite",
-    "test": "vitest run ./tests/module.test.mjs",
+    "dev": "pnpm build && vite",
+    "test": "vitest run tests/module.test.js",
     "deploy": "npm publish"
   },
   "repository": {
@@ -29,11 +29,11 @@
     "url": "https://github.com/ArturNiko/threads.js/issues"
   },
   "devDependencies": {
-    "happy-dom": "^9.20.3",
-    "tsup": "^6.7.0",
-    "typescript": "^5.3.3",
-    "vite": "^4.5.1",
-    "vitest": "^0.30.1"
+    "happy-dom": "latest",
+    "tsup": "latest",
+    "typescript": "latest",
+    "vite": "latest",
+    "vitest": "latest"
   },
   "keywords": [
     "multithreading",
