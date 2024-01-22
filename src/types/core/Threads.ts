@@ -10,6 +10,8 @@ export default interface ThreadsInterface {
     dispose(): void
 
     set maxThreadCount(maxThreadsCount: number)
+
+    get maxThreadCount(): number
 }
 
 
