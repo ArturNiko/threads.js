@@ -68,7 +68,7 @@ export default class TaskPool implements TaskPoolInterface {
         return this
     }
 
-    remove(index: number, length?: number): this {
+    remove(index: number, length: number = 1): this {
         this.#pool.splice(index, length)
 
         this.#reindexPool()
