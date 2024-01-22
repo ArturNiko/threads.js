@@ -30,7 +30,29 @@ export default class LiveWorker implements LiveWorkerInterface {
                         postMessage('terminated')
                         self.close()
                 }
-            }`)
+            }
+            
+            function send(message) {
+                self.postMessage(message)
+            }
+            
+            function receive() {
+                
+            }
+            
+            class Connectors {
+                static send(message) {
+                    postMessage(message)
+                }
+                static async receive() {
+                    return new Promise((resolve) => {
+                        self.onmessage = (message) => {
+                            resolve(message.data)
+                        }
+                    })
+                }
+            }
+            `)
 
         const blob: Blob = new Blob([bytes], {type: 'application/javascript'})
         const url: string = URL.createObjectURL(blob)

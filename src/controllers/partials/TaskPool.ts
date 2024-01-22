@@ -22,7 +22,6 @@ export default class TaskPool implements TaskPoolInterface {
 
         this.#reindexPool()
 
-
         return this
     }
 
