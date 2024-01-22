@@ -18,7 +18,7 @@
     "build": "pnpm clear && tsup src/index.ts --format esm, cjs --dts --clean",
     "watch": "pnpm build --watch",
     "dev": "pnpm build && vite",
-    "test": "vitest run ./tests/module.test.mjs",
+    "test": "vitest run tests/module.test.js",
     "deploy": "npm publish"
   },
   "repository": {

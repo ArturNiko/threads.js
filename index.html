@@ -92,17 +92,17 @@
 
 
     function test1(message) {
-        let counter = message ?? 0
+        let counter = message?.counter ?? 0
         const rand = Math.random() * .001
         for (let i = 0; i < 500_000_000; i++) {
             counter += i * rand > 10 ? Math.floor(i * rand) : 0
         }
 
-        return counter
+        return {index: message?.index ?? 'None', counter}
     }
     const tasks1 = new TaskPool()
     for (let i = 0; i < 10; i++) {
-        tasks1.push({message: i, method: test1}, test1)
+        tasks1.push({method: test1, message: {index: i, message: i}}, test1)
     }
 
 
@@ -110,10 +110,6 @@
         return message + 1
     }
     const tasks2 = new TaskPool().push({method: test2, message: 1}, test2, {method: test2, message: 10}, test2, test2)
-
-    console.log(tasks1.pool.length)
-    tasks1.remove(1)
-    console.log(tasks1.pool.length)
 
     document.querySelector('#run').addEventListener('click', async function () {
         this.classList.add('running')
@@ -125,7 +121,10 @@
 
 
         const result2 = threads.executeParallel(tasks1, {
-                step: (message, progress) => document.querySelector('#progress').style.width = (progress) + '%'
+                step: (message, progress) => {
+                    console.log(message)
+                    document.querySelector('#progress').style.width = (progress) + '%'
+                }
             }
         )
 

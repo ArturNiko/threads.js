@@ -22,7 +22,8 @@ export default class LiveWorker implements LiveWorkerInterface {
                             const fn = new Function('return ' + data.task)()
                             handle(fn(data.value))
                         } catch (error) {
-                            console.error('Error in worker:', error)
+                            postMessage(error)
+                            self.close()
                         }
                         break
                     case 'terminate':

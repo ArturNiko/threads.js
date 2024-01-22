@@ -23,7 +23,6 @@ export default class Thread implements ThreadInterface {
         responses.length = data.poolSize ?? data.pool.length
 
         while (data.pool.length) {
-
             // Get the next task & remove it from the pool
             const task: Task = data.pool.splice(0, 1)[0]
 
@@ -31,11 +30,17 @@ export default class Thread implements ThreadInterface {
             if(this.#mode === Mode.SEQUENTIAL) task.message = task.message ?? responses[task.index - 1]
 
             // Run the task and get the response
-            responses[task.index!] = await this.#worker.run(task.method, task.message)
+            const response = await this.#worker.run(task.method, task.message)
+
+            // Check if the response is an error
+            if (response instanceof Error) throw new Error('Worker error: ' + response.stack)
+
+            // Save the response
+            responses[task.index!] = response
 
             // Execute the step callback
-            const progress: number = 100 * responses.reduce((acc, response) => acc + (response !== undefined ? 1 : 0), 0) / responses.length
-            data.step?.(responses[responses.length - 1], progress)
+            const progress: number = 100 * responses.filter((response) => response !== undefined).length / responses.length
+            data.step?.(responses[task.index!], progress)
         }
 
         this.#state = State.IDLE

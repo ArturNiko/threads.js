@@ -40,7 +40,7 @@ or
 ```typescript
 import Threads from '@a4turp/threads.js'
 
-// Maximum number of threads is calculated as navigator.hardwareConcurrency * 2 - 1
+// Maximum number of threads is calculated as navigator.hardwareConcurrency - 1
 // Set the Maximum number of threads
 const threads = new Threads(12)
 
@@ -119,6 +119,7 @@ await threads.executeSequential(tasks)
 
 ## API
 
+### Methods
 Here is the list of available methods with their types and descriptions:
 
 ```typescript
@@ -152,6 +153,17 @@ tasks.push({method: square, message: 20}, square, {method: square, message: 0}).
  */
 
 tasks.replace(2, {method: square, message: 30}, square)
+```
+
+
+```typescript
+/**
+ *  @param                   index: number, length?: number
+ *  @return                  this
+ *  @description             Grab tasks from a specific index out of the pool
+ */
+tasks.grab(1, 3)
+
 ```
 
 ```typescript
@@ -221,4 +233,37 @@ await threads.executeSequential(tasks)
  *                           Doesn't provide any use yet because threads are terminated automatically after execution and    
  */
 threads.dispose()
+```
+
+### Properties
+Additionally, you can access&modify some properties:
+
+```typescript
+/**
+ * @return                  Array<Task>
+ * @description             Returns the pool array
+ * @note                    Readonly
+ */
+
+tasks.pool
+```
+
+```typescript
+/**
+ * @return                  number
+ * @description             Returns the number of tasks in the pool
+ * @note                    Readonly
+ */
+
+tasks.length
+```
+
+```typescript
+
+/**
+ * @return                  number
+ * @description             Returns the maximum number of threads
+ */
+
+threads.maxThreadCount = 10
 ```

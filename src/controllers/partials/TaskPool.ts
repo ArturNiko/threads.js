@@ -56,6 +56,14 @@ export default class TaskPool implements TaskPoolInterface {
         return this
     }
 
+    grab(index: number, length: number = 1): Task[] {
+        const grabbedTasks: Task[] = this.#pool.splice(index, length)
+
+        this.#reindexPool()
+
+        return grabbedTasks
+    }
+
     pop(): this {
         this.#pool.pop()
 
@@ -64,6 +72,8 @@ export default class TaskPool implements TaskPoolInterface {
 
     shift(): this {
         this.#pool.shift()
+
+        this.#reindexPool()
 
         return this
     }
@@ -98,5 +108,10 @@ export default class TaskPool implements TaskPoolInterface {
 
     get pool(): Task[] {
         return this.#pool
+    }
+
+
+    get length(): number {
+        return this.#pool.length
     }
 }
