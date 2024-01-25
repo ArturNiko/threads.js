@@ -9,12 +9,14 @@ lerna-debug.log*
 
 node_modules
 .github
+tests
+coverage
 src
 dist-ssr
 *.local
 
 # Configs
-vite.config.js
+vite.config.ts
 jest.config.js
 tsconfig.json
 
