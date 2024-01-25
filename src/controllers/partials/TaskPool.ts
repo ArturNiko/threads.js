@@ -11,11 +11,7 @@ export default class TaskPool implements TaskPoolInterface {
     }
 
     push(...tasks: (PartialBy<Task, 'index'> | Function)[]): this {
-        if(this.#pool.length + tasks.length > this.maxSize) {
-            console.warn('Pool size will exceed max size')
-
-            return this
-        }
+        if(!this.#checkSize(tasks)) return this
 
         const preparedTasks = this.#prepareTasks(tasks)
         this.#pool.push(...preparedTasks)
@@ -26,11 +22,7 @@ export default class TaskPool implements TaskPoolInterface {
     }
 
     insert(index: number, ...tasks: (PartialBy<Task, 'index'> | Function)[]): this {
-        if(this.#pool.length + tasks.length > this.maxSize) {
-            console.warn('Pool size will exceed max size')
-
-            return this
-        }
+        if(!this.#checkSize(tasks)) return this
 
         this.#pool = [
             ...this.#pool.slice(0, index),
@@ -103,6 +95,16 @@ export default class TaskPool implements TaskPoolInterface {
         this.#pool.forEach((_, index) => {
             this.#pool[index].index = index
         })
+    }
+
+    #checkSize(tasks: (PartialBy<Task, 'index'> | Function)[]) {
+        if(this.#pool.length + tasks.length > this.maxSize) {
+            console.warn('Pool size will exceed max size')
+
+            return false
+        }
+
+        return  true
     }
 
     get pool(): Task[] {

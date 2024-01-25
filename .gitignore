@@ -11,6 +11,8 @@ lerna-debug.log*
 # pnpm-lock.yaml
 yarn.lock
 
+# Coverage
+coverage
 
 # Git undesired files
 node_modules
