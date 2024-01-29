@@ -97,12 +97,17 @@ describe('#Functionality', () => {
 
         const pool2 = new TaskPool(2)
 
-        pool2.push(square, {method: square, message: 3})
-        pool2.push(square)
-        expect(pool.length).toBe(2)
+        // Max size push
 
-        pool2.insert(1, square)
-        expect(pool.length).toBe(2)
+        pool2.push(square).push(square, {method: square, message: 3})
+
+        expect(pool2.length).toBe(1)
+
+        // Max size insert
+
+        pool2.insert(1, square).insert(2, square)
+
+        expect(pool2.length).toBe(2)
 
 
     })

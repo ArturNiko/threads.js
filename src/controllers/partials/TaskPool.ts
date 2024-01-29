@@ -97,9 +97,13 @@ export default class TaskPool implements TaskPoolInterface {
         })
     }
 
-    #checkSize(tasks: (PartialBy<Task, 'index'> | Function)[]) {
+    #checkSize(tasks: (PartialBy<Task, 'index'> | Function)[]): boolean {
+        if(this.#pool.length === this.maxSize) {
+            console.warn('Pool is full')
+            return false
+        }
         if(this.#pool.length + tasks.length > this.maxSize) {
-            console.warn('Pool size will exceed max size')
+            console.warn(`Pool size will exceed max size. Only ${this.maxSize - this.#pool.length} task/s can be inserted`)
 
             return false
         }
