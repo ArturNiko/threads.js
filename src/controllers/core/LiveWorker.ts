@@ -1,35 +1,38 @@
-import LiveWorkerInterface, {Command} from '../../types/core/LiveWorker'
+import LiveWorkerInterface, {Command, Response} from '../../types/core/LiveWorker'
 
 
 export default class LiveWorker implements LiveWorkerInterface {
     readonly #worker: Worker
 
-    #callback: (message: any) => void = (): void => {}
+    #completedCallback: (message: any) => void = (): void => {}
+    #receiveResponseCallback: (message: any) => void = (): void => {}
 
     constructor() {
         const bytes: Uint8Array = new TextEncoder().encode(`
-            async function handle(taskResponse) {
-                postMessage(await taskResponse)
-            }
-            
+            let liveMessage = 'You can modify me inside of the task and receive me :)'
             self.onmessage = async (message) => {
                 const data = message.data
-                
                 switch (data.command) {
                     case 'run':
-                        try {
-                            // Dynamically create the function from the string
-                            const fn = new Function('return ' + data.task)()
-                            handle(await fn(data.value))
-                        } catch (error) {
-                            postMessage(error)
-                            self.close()
-                        }
+                        // Dynamically create a function from the string
+                        const fn = new Function('return ' + data.task)()
+                        const value = await fn(data.value)
+                            
+                        postMessage({response: 'completed', value})
+                        break  
+                          
+                    case 'receive':
+                        postMessage({response: 'receive-response', value: liveMessage})
+                        liveMessage = data.value
                         break
+                        
+                    case 'send':
+                        break    
+                        
                     case 'terminate':
-                        postMessage('terminated')
                         self.close()
-                }
+                        break
+                }              
             }`)
 
         const blob: Blob = new Blob([bytes], {type: 'application/javascript'})
@@ -38,16 +41,19 @@ export default class LiveWorker implements LiveWorkerInterface {
 
         this.#worker.onmessage = (message: MessageEvent): void => {
             // Call the callback with the response (callback is overwritten in the run method)
-            this.#callback(message.data)
+            if(message.data.response === Response.COMPLETED) this.#completedCallback(message.data.value)
+            else if (message.data.response === Response.RECEIVE_RESPONSE) this.#receiveResponseCallback(message.data.value)
         }
-        this.#worker.onerror = console.error
+        this.#worker.onerror = (err: ErrorEvent) => {
+            throw new Error('Worker internal error occurred ' + err.message)
+        }
     }
 
 
     async run(task: Function, value?: any): Promise<any> {
         const response: Promise<any> = new Promise<any>((resolve) => {
             // Overwrite the callback to resolve the promise
-            this.#callback = (message: any): void => {
+            this.#completedCallback = (message: any): void => {
                 resolve(message)
             }
         })
@@ -59,5 +65,19 @@ export default class LiveWorker implements LiveWorkerInterface {
 
     terminate(): void {
         this.#worker.postMessage({command: Command.TERMINATE})
+    }
+
+    send(message: any): void {
+        this.#worker.postMessage({command: Command.SEND, message})
+    }
+
+    async receive(): Promise<any> {
+        this.#worker.postMessage({command: Command.RECEIVE})
+        const response: Promise<any> = new Promise<any>((resolve) => {
+            // Overwrite the callback to resolve the promise
+            this.#receiveResponseCallback = (message: any): void => {
+                resolve(message)
+            }
+        })
     }
 }

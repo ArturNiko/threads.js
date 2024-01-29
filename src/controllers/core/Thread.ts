@@ -29,6 +29,12 @@ export default class Thread implements ThreadInterface {
             // If the tasks relation is CHAINED, then the message of the next task is the response of the previous task
             if(this.#mode === Mode.SEQUENTIAL) task.message = task.message ?? responses[task.index - 1]
 
+            // Set up live connection
+            data.connect?.({
+                send: this.#worker.send,
+                receive: this.#worker.receive
+            })
+
             // Run the task and get the response
             const response = await this.#worker.run(task.method, task.message)
 
@@ -41,6 +47,7 @@ export default class Thread implements ThreadInterface {
             // Execute the step callback
             const progress: number = 100 * responses.filter((response) => response !== undefined).length / responses.length
             data.step?.(responses[task.index!], progress)
+
         }
 
         this.#state = State.IDLE

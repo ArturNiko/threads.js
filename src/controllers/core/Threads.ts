@@ -22,7 +22,8 @@ export default class Threads implements ThreadsInterface {
 
         const result: any[] = await thread.execute({
             pool: taskPool.pool,
-            step: options.step
+            step: options.step,
+            connect: options.connect
         })
 
         taskPool.clear()
@@ -43,7 +44,8 @@ export default class Threads implements ThreadsInterface {
             pool: taskPool.pool,
             poolSize: taskPool.pool.length,
             responses: [],
-            step: options.step
+            step: options.step,
+            connect: options.connect
         }
 
         const promises: Promise<any>[] = []

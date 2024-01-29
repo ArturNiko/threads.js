@@ -1,4 +1,6 @@
 import {Task} from '../partials/TaskPool'
+import {Connectors} from './LiveWorker'
+
 import TaskPool from '../../controllers/partials/TaskPool'
 
 
@@ -20,10 +22,12 @@ export interface TransferData {
     poolSize?: number
     responses?: any[]
     step?: Callback
+    connect?: (connectors: Connectors) => void
 }
 
 export interface Options {
-    step?: Callback
+    step?: TransferData['step']
+    connect?: TransferData['connect']
     response?: ResponseType
     threads?: number
 }

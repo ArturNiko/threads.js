@@ -1,5 +1,4 @@
-import TaskPoolInterface, {Task} from '../../types/partials/TaskPool'
-import {PartialBy} from '../../types/helpers'
+import TaskPoolInterface, {Task, TaskEntry} from '../../types/partials/TaskPool'
 
 export default class TaskPool implements TaskPoolInterface {
     #pool: Task[] = []
@@ -9,7 +8,7 @@ export default class TaskPool implements TaskPoolInterface {
         this.maxSize = maxSize ?? this.maxSize
     }
 
-    push(...tasks: (PartialBy<Task, 'index'> | Function)[]): this {
+    push(...tasks: TaskEntry[]): this {
         if(!this.#checkSize(tasks)) return this
 
         const preparedTasks = this.#prepareTasks(tasks)
@@ -20,7 +19,7 @@ export default class TaskPool implements TaskPoolInterface {
         return this
     }
 
-    insert(index: number, ...tasks: (PartialBy<Task, 'index'> | Function)[]): this {
+    insert(index: number, ...tasks: TaskEntry[]): this {
         if(!this.#checkSize(tasks)) return this
 
         this.#pool = [
@@ -34,7 +33,7 @@ export default class TaskPool implements TaskPoolInterface {
         return this
     }
 
-    replace(index: number, ...tasks: (PartialBy<Task, 'index'> | Function)[]): this {
+    replace(index: number, ...tasks: TaskEntry[]): this {
         this.#pool = [
             ...this.#pool.slice(0, index),
             ...this.#prepareTasks(tasks),
@@ -82,7 +81,7 @@ export default class TaskPool implements TaskPoolInterface {
         return this
     }
 
-    #prepareTasks(pool: (PartialBy<Task, 'index'> | Function)[]): Task[] {
+    #prepareTasks(pool: TaskEntry[]): Task[] {
         pool.forEach((task, index) => {
             if (typeof task === 'function') pool[index] = {index: 0, method: task}
         })
@@ -96,7 +95,7 @@ export default class TaskPool implements TaskPoolInterface {
         })
     }
 
-    #checkSize(tasks: (PartialBy<Task, 'index'> | Function)[]): boolean {
+    #checkSize(tasks: TaskEntry[]): boolean {
         if(this.#pool.length === this.maxSize) {
             console.warn('Pool is full')
             return false
