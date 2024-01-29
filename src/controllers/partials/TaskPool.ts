@@ -1,6 +1,5 @@
 import TaskPoolInterface, {Task} from '../../types/partials/TaskPool'
-
-type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
+import {PartialBy} from '../../types/helpers'
 
 export default class TaskPool implements TaskPoolInterface {
     #pool: Task[] = []
