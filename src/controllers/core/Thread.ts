@@ -33,6 +33,12 @@ export default class Thread implements ThreadInterface {
             // If throttle is set, wait for it's completion
             if(data.throttle) await this.#waitForThrottleSuccess(data.throttle)
 
+            // Set up live connection
+            data.connect?.({
+                send: this.#worker.send,
+                receive: this.#worker.receive
+            })
+
             // Run the task and get the response
             const response = await this.#executor.run(task.method, task.message)
 
@@ -45,6 +51,7 @@ export default class Thread implements ThreadInterface {
             // Execute the step callback
             const progress: number = 100 * responses.filter((response) => response !== undefined).length / data.poolSize
             data.step?.(responses[task.index!], progress)
+
         }
 
         data.pool.clear()
