@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Vite App</title>
+    <title>Threads.js</title>
+    <link rel="stylesheet" href="templates/default.css">
     <style>
         body {
             color: white;
@@ -68,14 +69,12 @@
             box-shadow: 0 0 10px lime;
             pointer-events: none;
         }
-
-
     </style>
 </head>
 <body>
-<div id="app">
+<header>
     <div id="progress"></div>
-</div>
+</header>
 <main>
     <h1>Threads.js</h1>
     <p>Threads.js is a library that allows you to run JavaScript in parallel.</p>
@@ -90,7 +89,6 @@
 
     const threads = new Threads(8)
 
-
     function test1(message) {
         let counter = message?.counter ?? 0
         const rand = Math.random() * .001
@@ -100,6 +98,7 @@
 
         return {index: message?.index ?? 'None', counter}
     }
+
     const tasks1 = new TaskPool()
     for (let i = 0; i < 10; i++) {
         tasks1.push({method: test1, message: {index: i, message: i}}, test1)
@@ -122,7 +121,6 @@
 
         const result2 = threads.executeParallel(tasks1, {
                 step: (message, progress) => {
-                    console.log(message)
                     document.querySelector('#progress').style.width = (progress) + '%'
                 }
             }

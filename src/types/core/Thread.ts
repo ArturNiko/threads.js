@@ -18,5 +18,6 @@ export enum State {
 export enum Mode {
     PARALLEL = 'parallel',
     SEQUENTIAL = 'sequential',
+    CONNECTED = 'connected'
 }
 

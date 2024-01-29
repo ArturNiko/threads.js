@@ -4,7 +4,7 @@ import LiveWorkerInterface, {Command} from '../../types/core/LiveWorker'
 export default class LiveWorker implements LiveWorkerInterface {
     readonly #worker: Worker
 
-    #callback: (message: any) => void = () => {}
+    #callback: (message: any) => void = (): void => {}
 
     constructor() {
         const bytes: Uint8Array = new TextEncoder().encode(`
@@ -12,7 +12,7 @@ export default class LiveWorker implements LiveWorkerInterface {
                 postMessage(await taskResponse)
             }
             
-            self.onmessage = (message) => {
+            self.onmessage = async (message) => {
                 const data = message.data
                 
                 switch (data.command) {
@@ -20,7 +20,7 @@ export default class LiveWorker implements LiveWorkerInterface {
                         try {
                             // Dynamically create the function from the string
                             const fn = new Function('return ' + data.task)()
-                            handle(fn(data.value))
+                            handle(await fn(data.value))
                         } catch (error) {
                             postMessage(error)
                             self.close()
@@ -30,29 +30,7 @@ export default class LiveWorker implements LiveWorkerInterface {
                         postMessage('terminated')
                         self.close()
                 }
-            }
-            
-            function send(message) {
-                self.postMessage(message)
-            }
-            
-            function receive() {
-                
-            }
-            
-            class Connectors {
-                static send(message) {
-                    postMessage(message)
-                }
-                static async receive() {
-                    return new Promise((resolve) => {
-                        self.onmessage = (message) => {
-                            resolve(message.data)
-                        }
-                    })
-                }
-            }
-            `)
+            }`)
 
         const blob: Blob = new Blob([bytes], {type: 'application/javascript'})
         const url: string = URL.createObjectURL(blob)
@@ -69,7 +47,7 @@ export default class LiveWorker implements LiveWorkerInterface {
     async run(task: Function, value?: any): Promise<any> {
         const response: Promise<any> = new Promise<any>((resolve) => {
             // Overwrite the callback to resolve the promise
-            this.#callback = (message: any) => {
+            this.#callback = (message: any): void => {
                 resolve(message)
             }
         })
