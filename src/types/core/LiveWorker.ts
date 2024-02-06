@@ -1,5 +1,3 @@
-import LiveWorker from '../../controllers/core/LiveWorker'
-
 export default interface LiveWorkerInterface {
     run(task: Function, value?: any): Promise<any>
 
@@ -14,15 +12,18 @@ export enum Command {
     RUN = 'run',
     TERMINATE = 'terminate',
     SEND = 'send',
-    RECEIVE = 'receive',
+    RECEIVE = 'receive'
 }
 
 export enum Response {
     COMPLETED = 'completed',
-    RECEIVE_RESPONSE = 'receive-response',
+    RECEIVE_RESPONSE = 'receive-response'
 }
 
 export interface Connectors {
     send: LiveWorkerInterface['send']
+
     receive: LiveWorkerInterface['receive']
+
+    terminate: LiveWorkerInterface['terminate']
 }

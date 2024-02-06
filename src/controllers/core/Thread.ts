@@ -31,8 +31,9 @@ export default class Thread implements ThreadInterface {
 
             // Set up live connection
             data.connect?.({
-                send: this.#worker.send,
-                receive: this.#worker.receive
+                send:       (message: any) => this.send(message),
+                receive:    () => this.receive(),
+                terminate:  () => this.terminate()
             })
 
             // Run the task and get the response
@@ -54,9 +55,18 @@ export default class Thread implements ThreadInterface {
         return responses
     }
 
+    send(message: any): void {
+        this.#worker.send(message)
+    }
+
+    receive(): Promise<any> {
+        return this.#worker.receive()
+    }
+
     terminate(): void {
         this.#worker.terminate()
     }
+
 
     get state(): State {
         return this.#state

@@ -83,18 +83,15 @@
 
 <script type="module">
 
-    import Threads, {TaskPool} from './dist/index'
+    import Threads, {TaskPool, liveConnector} from './dist/index'
 
     // Define
     const threads = new Threads(8)
     const tasks1 = new TaskPool()
-    const tasks2 = new TaskPool()
 
     // Push
-    for (let i = 0; i < 10; i++) {
-        tasks1.push({method: test1, message: {message: i}}, test1)
-    }
-    tasks2.push({method: test2, message: 1}, test2, {method: test2, message: 10}, test2, test2)
+    tasks1.push({method: test1, message: 10})
+
 
 
     document.querySelector('#run').addEventListener('click', async function () {
@@ -109,35 +106,36 @@
                     document.querySelector('#progress').style.width = (progress) + '%'
                 },
                 connect: (connectors) => {
-                    console.log(connectors)
+                    setTimeout(() => connectors.send(1), 1000)
+                    setTimeout(async () => console.log(await connectors.receive()), 2000)
                 }
             }
         )
-        const result2 = await threads.executeSequential(tasks2)
 
-        const promises = Promise.all([result1, result2])
+        const promises = Promise.all([result1])
 
         console.log('Result:', await promises)
         console.timeEnd('Execution took')
 
         this.classList.replace('running', 'done')
         this.innerText = 'Done'
+
     }, {once: true})
 
-
-    function test1(message) {
-        let counter = message?.counter ?? 0
-        const rand = Math.random() * .001
-        for (let i = 0; i < 500_000_000; i++) {
-            counter += i * rand > 10 ? Math.floor(i * rand) : 0
-        }
-
-        return counter
+    async function test1(message) {
+        return new Promise(_ => {
+            setInterval(() => {
+                // Change the message if connector value is updated
+                message = liveConnector.receive() ?? message
+                // Modify the value of the live connector
+                liveConnector.modify(++message)
+                // Console out the value
+                console.log(message)
+            }, 200)
+        })
     }
 
-    function test2(message) {
-        return message + 1
-    }
+
 
     window.threads = threads
 </script>

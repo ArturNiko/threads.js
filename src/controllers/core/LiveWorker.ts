@@ -9,7 +9,34 @@ export default class LiveWorker implements LiveWorkerInterface {
 
     constructor() {
         const bytes: Uint8Array = new TextEncoder().encode(`
-            let liveMessage = 'You can modify me inside of the task and receive me :)'
+            class LiveConnector {
+                #value = undefined
+                #updated = false
+
+
+                update(value) {
+                    if (value === this.#value) return
+                    this.#value = value
+                    this.#updated = true
+                }
+
+                modify(value) {
+                    if (value === this.#value) return
+                    this.#value = value
+                }
+
+                receive() {
+                    if (!this.#updated) return
+                    this.#updated = false
+                    return this.#value
+                }
+
+                send(value) {
+                    self.postMessage({response: 'receive-response', value: value ?? this.#value })
+                }
+            }
+        
+            const liveConnector = new LiveConnector()
             self.onmessage = async (message) => {
                 const data = message.data
                 switch (data.command) {
@@ -17,22 +44,22 @@ export default class LiveWorker implements LiveWorkerInterface {
                         // Dynamically create a function from the string
                         const fn = new Function('return ' + data.task)()
                         const value = await fn(data.value)
-                            
+
                         postMessage({response: 'completed', value})
-                        break  
-                          
-                    case 'receive':
-                        postMessage({response: 'receive-response', value: liveMessage})
-                        liveMessage = data.value
                         break
-                        
+
+                    case 'receive':
+                        liveConnector.update(data.value)
+                        break
+
                     case 'send':
-                        break    
-                        
+                        liveConnector.send()
+                        break
+
                     case 'terminate':
                         self.close()
                         break
-                }              
+                }
             }`)
 
         const blob: Blob = new Blob([bytes], {type: 'application/javascript'})
@@ -67,17 +94,20 @@ export default class LiveWorker implements LiveWorkerInterface {
         this.#worker.postMessage({command: Command.TERMINATE})
     }
 
-    send(message: any): void {
-        this.#worker.postMessage({command: Command.SEND, message})
+    send(value: any): void {
+        this.#worker.postMessage({command: Command.RECEIVE, value})
     }
 
     async receive(): Promise<any> {
-        this.#worker.postMessage({command: Command.RECEIVE})
-        const response: Promise<any> = new Promise<any>((resolve) => {
+        const response: Promise<any> = new Promise<any>((resolve): void => {
             // Overwrite the callback to resolve the promise
             this.#receiveResponseCallback = (message: any): void => {
                 resolve(message)
             }
         })
+
+        this.#worker.postMessage({command: Command.SEND})
+
+        return await response
     }
 }
