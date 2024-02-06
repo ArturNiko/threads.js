@@ -63,7 +63,7 @@ export default class Threads implements ThreadsInterface {
     }
 
     async #awaitFreeThread(minThreadCount: number = 1): Promise<void> {
-        return new Promise<void>((resolve) => {
+        return new Promise<void>((resolve): void => {
             const interval: number = setInterval((): void => {
                 if (this.#maxThreadCount - this.#threads.length >= minThreadCount) {
                     clearInterval(interval)
