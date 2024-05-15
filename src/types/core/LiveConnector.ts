@@ -1,7 +1,7 @@
 import ExecutorInterface from './Executor'
 
 
-export default interface LiveConnectorInterface extends ExecutorInterface{
+export default interface LiveConnectorInterface extends ExecutorInterface {
     send(message: any): void
 
     receive(): Promise<any>
@@ -9,9 +9,9 @@ export default interface LiveConnectorInterface extends ExecutorInterface{
 
 export enum Command {
     RUN = 'run',
-    TERMINATE = 'terminate',
     SEND = 'send',
-    RECEIVE = 'receive'
+    RECEIVE = 'receive',
+    TERMINATE = 'terminate'
 }
 
 export enum Response {
@@ -20,6 +20,7 @@ export enum Response {
 }
 
 export interface Connectors {
+
     send: LiveConnectorInterface['send']
 
     receive: LiveConnectorInterface['receive']

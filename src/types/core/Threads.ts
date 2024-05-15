@@ -25,12 +25,14 @@ export interface TransferData {
     poolSize?: number
     responses?: any[]
     step?: Callback
+    throttle?: Throttle
 }
 
 export interface Options {
-    step?: TransferData['step']
     response?: ResponseType
     threads?: number
+    throttle?: TransferData['throttle']
+    step?: TransferData['step']
 }
 
 
@@ -40,5 +42,5 @@ export enum ResponseType {
 }
 
 
-type Callback = (message: any, progress: number) => void
-
+export type Callback = (message: any, progress: number) => void
+export type Throttle = () => Promise<boolean>

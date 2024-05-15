@@ -1,7 +1,7 @@
-import LiveWorkerInterface, {Command, Response} from '../../types/core/LiveConnector'
+import LiveConnectorInterface, {Command, Response} from '../../types/core/LiveConnector'
 
 
-export default class LiveWorker implements LiveWorkerInterface {
+export default class LiveConnector implements LiveConnectorInterface {
     readonly #worker: Worker
 
     #completedCallback: (message: any) => void = (): void => {}

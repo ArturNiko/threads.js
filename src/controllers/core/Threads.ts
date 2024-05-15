@@ -7,11 +7,11 @@ import LiveConnector from "./LiveConnector";
 
 
 export default class Threads implements ThreadsInterface {
-    #maxThreadCount: number = 3
+    #maxThreadCount: number = 2
     #threads: Thread[] = []
 
 
-    constructor(maxThreads: number = 3) {
+    constructor(maxThreads: number = 2) {
         this.maxThreadCount = maxThreads
     }
 
@@ -23,7 +23,8 @@ export default class Threads implements ThreadsInterface {
 
         const result: any[] = await thread.execute({
             pool: taskPool.pool,
-            step: options.step
+            step: options.step,
+            throttle: options.throttle
         })
 
         taskPool.clear()
@@ -44,7 +45,8 @@ export default class Threads implements ThreadsInterface {
             pool: taskPool.pool,
             poolSize: taskPool.pool.length,
             responses: [],
-            step: options.step
+            step: options.step,
+            throttle: options.throttle
         }
 
         const promises: Promise<any>[] = []
@@ -63,7 +65,8 @@ export default class Threads implements ThreadsInterface {
         return options.response === ResponseType.LAST ? syncedData.responses![syncedData.responses!.length - 1] : syncedData.responses
     }
 
-    connect(task: Function, options?: Options): LiveConnector {
+    connect(task: Function, options?: Omit<Options, 'threads' | 'response'>): LiveConnector {
+
 
         return new LiveConnector()
     }

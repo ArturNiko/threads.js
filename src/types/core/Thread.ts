@@ -1,12 +1,12 @@
 import {TransferData} from './Threads'
 
-import LiveWorkerInterface from './LiveWorker'
+import ExecutorInterface from './Executor'
 
 
 export default interface ThreadInterface {
     execute(data: TransferData): Promise<any[]>
 
-    terminate: LiveWorkerInterface['terminate']
+    terminate: ExecutorInterface['terminate']
 
     state: State
 }
