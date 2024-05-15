@@ -3,7 +3,6 @@ export default class LiveConnector implements LiveConnectorInterface {
     #value: any = undefined
     #updated: boolean = false
 
-
     update(value: any): void {
         console.warn('This instance is a hollow placeholder')
     }
