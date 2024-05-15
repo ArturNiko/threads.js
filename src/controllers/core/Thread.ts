@@ -2,11 +2,11 @@ import ThreadInterface, {Mode, State} from '../../types/core/Thread'
 import {TransferData} from '../../types/core/Threads'
 import {Task} from '../../types/partials/TaskPool'
 
-import LiveWorker from './LiveWorker'
+import Executor from './Executor'
 
 
 export default class Thread implements ThreadInterface {
-    readonly #worker: LiveWorker = new LiveWorker()
+    readonly #executor: Executor = new Executor()
     readonly #mode: Mode = Mode.PARALLEL
 
     #state: State = State.IDLE
@@ -30,7 +30,7 @@ export default class Thread implements ThreadInterface {
             if(this.#mode === Mode.SEQUENTIAL) task.message = task.message ?? responses[task.index - 1]
 
             // Run the task and get the response
-            const response = await this.#worker.run(task.method, task.message)
+            const response = await this.#executor.run(task.method, task.message)
 
             // Check if the response is an error
             if (response instanceof Error) throw new Error('Worker error: ' + response.stack)
@@ -48,7 +48,7 @@ export default class Thread implements ThreadInterface {
     }
 
     terminate(): void {
-        this.#worker.terminate()
+        this.#executor.terminate()
     }
 
     get state(): State {

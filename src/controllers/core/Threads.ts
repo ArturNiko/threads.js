@@ -3,6 +3,7 @@ import {Mode as ThreadMode, State as ThreadState} from '../../types/core/Thread'
 
 import Thread from './Thread'
 import TaskPool from '../partials/TaskPool'
+import LiveConnector from "./LiveConnector";
 
 
 export default class Threads implements ThreadsInterface {
@@ -61,6 +62,12 @@ export default class Threads implements ThreadsInterface {
 
         return options.response === ResponseType.LAST ? syncedData.responses![syncedData.responses!.length - 1] : syncedData.responses
     }
+
+    connect(task: Function, options?: Options): LiveConnector {
+
+        return new LiveConnector()
+    }
+
 
     dispose(): void {
         for (let i = 0; i < this.#threads.length; i++) {
