@@ -85,11 +85,9 @@
 
 <script type="module">
 
-    import Threads, {TaskPool} from './dist/index.mjs'
+    import Threads, {TaskPool} from './src/index.ts'
 
-
-    const threads = new Threads(8)
-
+    const threads = new Threads(navigator.hardwareConcurrency)
 
     function test1(message) {
         let counter = message?.counter ?? 0
@@ -111,30 +109,33 @@
     }
     const tasks2 = new TaskPool().push({method: test2, message: 1}, test2, {method: test2, message: 10}, test2, test2)
 
-    document.querySelector('#run').addEventListener('click', async function () {
-        this.classList.add('running')
-        this.innerText = 'Running...'
+    const button = document.querySelector('#run')
+    button.addEventListener('click', async () => {
+        button.classList.add('running')
+        button.innerText = 'Running...'
 
         console.time('Execution took')
 
-        const result1 = await threads.executeSequential(tasks2)
-
-
-        const result2 = threads.executeParallel(tasks1, {
+        const result1 = threads.executeParallel(tasks1, {
                 step: (message, progress) => {
                     console.log(message)
                     document.querySelector('#progress').style.width = (progress) + '%'
+                },
+                throttle: () => {
+                    //Dynamic throttle can help to prevent the browser from freezing when running heavy tasks
+                    return performance.now() > 2000
                 }
             }
         )
 
+        const result2 = await threads.executeSequential(tasks2)
         const promises = Promise.all([result1, result2])
 
         console.log('Result:', await promises)
         console.timeEnd('Execution took')
 
-        this.classList.replace('running', 'done')
-        this.innerText = 'Done'
+        button.classList.replace('running', 'done')
+        button.innerText = 'Done'
     }, {once: true})
 
 
