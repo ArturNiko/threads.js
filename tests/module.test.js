@@ -73,14 +73,12 @@ describe('#Functionality', () => {
     })
 
 
-    /*
+    /* Worker is not defined
     it('Sequential execution', async () => {
-        expect(pool.pool.length).toBe(0)
         pool.push(square, {method: square, message: 3}, square, square)
 
         expect(await threads.executeSequential(pool)).toBeInstanceOf(Array)
     })
-
      */
 
 
