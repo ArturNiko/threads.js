@@ -14,8 +14,7 @@
   },
   "comment//": "publish: pnpm build --onSuccess 'echo 1' for later automations...",
   "scripts": {
-    "clear": "rm -rf ./dist",
-    "build": "pnpm clear && tsup src/index.ts --format esm, cjs --dts --clean",
+    "build": "tsup src/index.ts --format esm, cjs --dts --clean",
     "watch": "pnpm build --watch",
     "dev": "pnpm build && vite",
     "test": "vitest run tests/module.test.js",
@@ -45,5 +44,6 @@
     "ts",
     "javascript",
     "js"
-  ]
+  ],
+  "packageManager": "pnpm@8.13.1+sha256.9e5f62ce5f2b7d4ceb3c2848f41cf0b33032c24d683c7088b53f62b1885fb246"
 }
