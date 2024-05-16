@@ -6,10 +6,6 @@ export default interface ThreadsInterface {
 
     executeParallel(taskPool: TaskPool, options?: Options): Promise<any[]|any>
 
-    terminate(): void
-
-    softTerminate(): void
-
     set maxThreadCount(maxThreadsCount: number)
 
     get maxThreadCount(): number

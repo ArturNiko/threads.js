@@ -1,5 +1,5 @@
 import ThreadsInterface, {Options, TransferData} from '../../types/core/Threads'
-import {Mode as ThreadMode, State as ThreadState} from '../../types/core/Thread'
+import {Mode as ThreadMode} from '../../types/core/Thread'
 
 import Thread from './Thread'
 import TaskPool from '../partials/TaskPool'
@@ -29,8 +29,6 @@ export default class Threads implements ThreadsInterface {
 
         const result: any[] = await thread.execute(transferData)
 
-        this.softTerminate()
-
         return result[0]
     }
 
@@ -57,19 +55,7 @@ export default class Threads implements ThreadsInterface {
 
         await Promise.all(promises)
 
-        this.softTerminate()
-
         return transferData.responses
-    }
-
-    terminate(): void {
-        this.#threads.forEach((thread) => thread.terminate())
-    }
-
-    softTerminate(): void {
-        this.#threads.forEach((thread) => {
-            if(thread.state === ThreadState.IDLE) thread.terminate()
-        })
     }
 
     async #checkAvailableThreadSlots(minThreadCount?: number): Promise<void> {

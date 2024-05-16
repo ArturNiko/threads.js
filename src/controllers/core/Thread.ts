@@ -18,7 +18,6 @@ export default class Thread implements ThreadInterface {
 
     async execute(data: TransferData): Promise<any[]> {
         this.#state = State.RUNNING
-        console.log(data.throttle)
 
         const responses: any[] = data?.responses ?? []
 
@@ -32,7 +31,7 @@ export default class Thread implements ThreadInterface {
             if(this.#mode === Mode.SEQUENTIAL) task.message = task?.message ?? responses.at(-1)
 
             // If throttle is set, wait for it's completion
-            if(data.throttle) await this.#awaitThrottleConditionSuccess(data.throttle)
+            if(data.throttle) await this.#waitForThrottleSuccess(data.throttle)
 
             // Run the task and get the response
             const response = await this.#executor.run(task.method, task.message)
@@ -60,7 +59,7 @@ export default class Thread implements ThreadInterface {
         this.#state = State.IDLE
     }
 
-    #awaitThrottleConditionSuccess = async (throttle: ThrottleCallback): Promise<void> => {
+    #waitForThrottleSuccess = async (throttle: ThrottleCallback): Promise<void> => {
         return await new Promise<void>(async (resolve) => {
             if(await throttle()) return resolve()
             const interval: number = setInterval(async () => {
