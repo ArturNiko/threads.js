@@ -12,8 +12,7 @@ describe('#Functionality', () => {
     }
 
     it('Constructing(Threads)', () => {
-        const expectedMaxThreadCount = Math.min(navigator.hardwareConcurrency - 1, threadCount)
-        expect(threads.maxThreadCount).toBe(expectedMaxThreadCount)
+        expect(threads.maxThreadCount).toBe(navigator.hardwareConcurrency - 1)
     })
 
 
