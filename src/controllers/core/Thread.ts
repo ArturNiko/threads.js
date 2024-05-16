@@ -1,5 +1,5 @@
 import ThreadInterface, {Mode, State} from '../../types/core/Thread'
-import {Throttle, TransferData} from '../../types/core/Threads'
+import {ThrottleCallback, TransferData} from '../../types/core/Threads'
 import {Task} from '../../types/partials/TaskPool'
 
 import Executor from './Executor'
@@ -22,9 +22,9 @@ export default class Thread implements ThreadInterface {
         const responses: any[] = data?.responses ?? []
         responses.length = data.poolSize ?? data.pool.length
 
-        while (data.pool.length) {
+        while (data.pool.length && this.#state === State.RUNNING) {
             // Get the next task & remove it from the pool
-            const task: Task = data.pool.splice(0, 1)[0]
+            const task: Task = data.pool.shift().pool[0]
 
             // If the tasks relation is CHAINED, then the message of the next task is the response of the previous task
             if(this.#mode === Mode.SEQUENTIAL) task.message = task.message ?? responses[task.index - 1]
@@ -46,15 +46,19 @@ export default class Thread implements ThreadInterface {
             data.step?.(responses[task.index!], progress)
         }
 
+        data.pool.clear()
+
         this.#state = State.IDLE
+        this.#executor.terminate()
+
         return responses
     }
 
     terminate(): void {
-        this.#executor.terminate()
+        this.#state = State.IDLE
     }
 
-    #awaitThrottleConditionSuccess = async (throttle: Throttle): Promise<void> => {
+    #awaitThrottleConditionSuccess = async (throttle: ThrottleCallback): Promise<void> => {
         return await new Promise<void>(async (resolve) => {
             if(await throttle()) return resolve()
             const interval: number = setInterval(async () => {
@@ -62,7 +66,7 @@ export default class Thread implements ThreadInterface {
                     clearInterval(interval)
                     resolve()
                 }
-            }, 100)
+            }, 50)
         })
     }
 

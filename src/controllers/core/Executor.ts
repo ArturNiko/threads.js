@@ -18,7 +18,7 @@ export default class Executor implements ExecutorInterface {
 
                         postMessage(value)
                         break
-
+                        
                     case 'terminate':
                         self.close()
                         break
