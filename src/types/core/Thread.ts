@@ -6,9 +6,9 @@ import ExecutorInterface from './Executor'
 export default interface ThreadInterface {
     execute(data: TransferData): Promise<any[]>
 
-    terminate: ExecutorInterface['terminate']
+    get state(): State
 
-    state: State
+    terminate: ExecutorInterface['terminate']
 }
 
 
