@@ -1,12 +1,14 @@
 import {TransferData} from './Threads'
 
+import ExecutorInterface from './Executor'
+
 
 export default interface ThreadInterface {
     execute(data: TransferData): Promise<any[]>
 
-    terminate(): void
+    get state(): State
 
-    state: State
+    terminate: ExecutorInterface['terminate']
 }
 
 
@@ -17,6 +19,6 @@ export enum State {
 
 export enum Mode {
     PARALLEL = 'parallel',
-    SEQUENTIAL = 'sequential',
+    SEQUENTIAL = 'sequential'
 }
 

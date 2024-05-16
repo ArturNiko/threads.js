@@ -1,12 +1,12 @@
 import ThreadInterface, {Mode, State} from '../../types/core/Thread'
-import {TransferData} from '../../types/core/Threads'
+import {ThrottleCallback, TransferData} from '../../types/core/Threads'
 import {Task} from '../../types/partials/TaskPool'
 
-import LiveWorker from './LiveWorker'
+import Executor from './Executor'
 
 
 export default class Thread implements ThreadInterface {
-    readonly #worker: LiveWorker = new LiveWorker()
+    readonly #executor: Executor = new Executor()
     readonly #mode: Mode = Mode.PARALLEL
 
     #state: State = State.IDLE
@@ -20,17 +20,21 @@ export default class Thread implements ThreadInterface {
         this.#state = State.RUNNING
 
         const responses: any[] = data?.responses ?? []
-        responses.length = data.poolSize ?? data.pool.length
 
-        while (data.pool.length) {
+        const tasks = data.pool.pool
+
+        while (data.pool.length && this.#state === State.RUNNING) {
             // Get the next task & remove it from the pool
-            const task: Task = data.pool.splice(0, 1)[0]
+            const task: Task = tasks.splice(0, 1).at(0)!
 
-            // If the tasks relation is CHAINED, then the message of the next task is the response of the previous task
-            if(this.#mode === Mode.SEQUENTIAL) task.message = task.message ?? responses[task.index - 1]
+            // Sequential mode: set the message to the response of the previous task (if exists)
+            if(this.#mode === Mode.SEQUENTIAL) task.message = task?.message ?? responses.at(-1)
+
+            // If throttle is set, wait for it's completion
+            if(data.throttle) await this.#waitForThrottleSuccess(data.throttle)
 
             // Run the task and get the response
-            const response = await this.#worker.run(task.method, task.message)
+            const response = await this.#executor.run(task.method, task.message)
 
             // Check if the response is an error
             if (response instanceof Error) throw new Error('Worker error: ' + response.stack)
@@ -39,16 +43,32 @@ export default class Thread implements ThreadInterface {
             responses[task.index!] = response
 
             // Execute the step callback
-            const progress: number = 100 * responses.filter((response) => response !== undefined).length / responses.length
+            const progress: number = 100 * responses.filter((response) => response !== undefined).length / data.poolSize
             data.step?.(responses[task.index!], progress)
         }
 
+        data.pool.clear()
+
         this.#state = State.IDLE
+        this.#executor.terminate()
+
         return responses
     }
 
     terminate(): void {
-        this.#worker.terminate()
+        this.#state = State.IDLE
+    }
+
+    #waitForThrottleSuccess = async (throttle: ThrottleCallback): Promise<void> => {
+        return await new Promise<void>(async (resolve) => {
+            if(await throttle()) return resolve()
+            const interval: number = setInterval(async () => {
+                if (await throttle()) {
+                    clearInterval(interval)
+                    resolve()
+                }
+            }, 50)
+        })
     }
 
     get state(): State {

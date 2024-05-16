@@ -40,11 +40,11 @@ or
 ```typescript
 import Threads from '@a4turp/threads.js'
 
-// Maximum number of threads is calculated as navigator.hardwareConcurrency - 1
-// Set the Maximum number of threads
+// Maximum number of threads is calculated as navigator.hardwareConcurrency - 1.
+// Set the Maximum number of threads.
 const threads = new Threads(12)
 
-// Maximum number of threads can also be set after initialization
+// Maximum number of threads can also be set after initialization.
 threads.maxThreadCount = 4
 ```
 
@@ -65,7 +65,7 @@ Here is the showcase of data preparation:
 import {TaskPool} from '@a4turp/threads.js'
 
 function square(message) {
-    // If no message is passed, it will be set to 2 by default
+    // If no message is passed, it will be set to 2 by default.
     message = message || 2
     return message * message
 }
@@ -83,20 +83,20 @@ Here is the showcase of execution:
 
 ```typescript
 /**
- * @param                            response: any         Executed task response
- * @param                            progress: number      Progress of execution (0-100) // Helps to track the progress of execution
+ * @param                            response: any         Executed task response.
+ * @param                            progress: number      Progress of execution (0-100) // Helps to track the progress of execution.
  */
 type Callback = (message: any, progress: number) => void
 
 enum ResponseType {
-  ALL = 'ALL',                       // Returns all responses
-  LAST = 'LAST'                      // Returns only the last response
+  ALL = 'ALL',                       // Returns all responses.
+  LAST = 'LAST'                      // Returns only the last response.
 }
 
 interface Options {
-    step?: Callback                  // Callback function called after each task is executed
-    threads?: number                 // If in range of 1 and maximum number of threads, tasks will be tried to execute on the specified number of threads
-    response?: ResponseType          // Response type
+    step?: Callback                  // Callback function called after each task is executed.
+    threads?: number                 // If in range of 1 and maximum number of threads, tasks will be tried to execute on the specified number of threads.
+    response?: ResponseType          // Response type.
 }
 
 await threads.executeParallel(tasks, {
@@ -127,8 +127,8 @@ Here is the list of available methods with their types and descriptions:
  * @param                   index: number, ...task (Task|Function)[]
  * @return                  this
  * @description             Insert tasks at a specific index
- * @note                    If a task is a function, it will be converted to {method: Function, message: undefined}
- *                          Length of replaced tasks is determined by the number of passed tasks
+ * @note                    If a task is a function, it will be converted to {method: Function, message: undefined}.
+ *                          Length of replaced tasks is determined by the number of passed tasks.
  */
 tasks.insert(2, <Task>{method: square, message: 30}, square).insert(0, {method: square, message: 40})
 ```
@@ -138,8 +138,8 @@ tasks.insert(2, <Task>{method: square, message: 30}, square).insert(0, {method: 
  * @param                    ...task (Task|Function)[]
  * @return                   this
  * @description              Pushes tasks to the pool
- * @note                     If a task is a function, it will be converted to {method: Function, message: undefined}
- *                           You can push all tasks at once or one by one
+ * @note                     If a task is a function, it will be converted to {method: Function, message: undefined}.
+ *                           You can push all tasks at once or one by one.
  */
 tasks.push({method: square, message: 20}, square, {method: square, message: 0}).push({method: square, message: 10})
 ```
@@ -148,8 +148,8 @@ tasks.push({method: square, message: 20}, square, {method: square, message: 0}).
 /**
  *  @param                   index: number, ...task (Task|Function)[]
  *  @return                  this
- *  @description             Replace tasks from a specific index
- *  @note                    Length is determined by the number of passed tasks
+ *  @description             Replace tasks from a specific index.
+ *  @note                    Length is determined by the number of passed tasks.
  */
 
 tasks.replace(2, {method: square, message: 30}, square)
@@ -160,7 +160,7 @@ tasks.replace(2, {method: square, message: 30}, square)
 /**
  *  @param                   index: number, length?: number
  *  @return                  this
- *  @description             Grab tasks from a specific index out of the pool
+ *  @description             Grab tasks from a specific index out of the pool.
  */
 tasks.grab(1, 3)
 
@@ -169,7 +169,7 @@ tasks.grab(1, 3)
 ```typescript
 /**
  *  @return                  this
- *  @description             Remove the last task
+ *  @description             Remove the last task.
  */
 tasks.pop()
 ```
@@ -178,7 +178,7 @@ tasks.pop()
 ```typescript
 /**
  *  @return                  this
- *  @description             Remove the first task
+ *  @description             Remove the first task.
  */
 tasks.shift()
 ```
@@ -187,7 +187,7 @@ tasks.shift()
 /**
  *  @param                   index: number, length?: number
  *  @return                  this
- *  @description             Remove tasks from a specific index. Length default is 1
+ *  @description             Remove tasks from a specific index. Length default is 1.
  */
 tasks.remove(2, 2)
 ```
@@ -205,7 +205,7 @@ tasks.clear()
 /**
  *  @param                   tasks: TaskPool, options?: Options
  *  @return                  Promise<any[]|void>
- *  @description             Executes passed tasks on multiple threads concurrently
+ *  @description             Executes passed tasks on multiple threads concurrently.
  */
 await threads.executeParallel(tasks, <Options>{
     threads: 4,
@@ -218,21 +218,11 @@ await threads.executeParallel(tasks, <Options>{
 /**
  *  @param                   tasks: TaskPool, options?: Options
  *  @return                  Promise<any[]|void>
- *  @description             Executes passed tasks on 1 thread sequentially
+ *  @description             Executes passed tasks on 1 thread sequentially.
  *  @note                    As you saw earlier some tasks may have not any message. In sequential execution,
- *                           the message is passed from the previous task if it is not defined
+ *                           the message is passed from the previous task if it is not defined.
  */
 await threads.executeSequential(tasks)
-```
-
-```typescript
-/**
- *  @return                  this
- *  @description             Terminates all idle threads and clears the pool
- *  @note                    Awaits for all threads to finish their tasks
- *                           Doesn't provide any use yet because threads are terminated automatically after execution and    
- */
-threads.dispose()
 ```
 
 ### Properties
@@ -241,7 +231,7 @@ Additionally, you can access&modify some properties:
 ```typescript
 /**
  * @return                  Array<Task>
- * @description             Returns the pool array
+ * @description             Returns the pool array.
  * @note                    Readonly
  */
 
@@ -251,7 +241,7 @@ tasks.pool
 ```typescript
 /**
  * @return                  number
- * @description             Returns the number of tasks in the pool
+ * @description             Returns the number of tasks in the pool.
  * @note                    Readonly
  */
 
@@ -262,7 +252,7 @@ tasks.length
 
 /**
  * @return                  number
- * @description             Returns the maximum number of threads
+ * @description             Returns the maximum number of threads.
  */
 
 threads.maxThreadCount = 10

@@ -1,49 +1,48 @@
-import ThreadsInterface, {TransferData, Options, ResponseType} from '../../types/core/Threads'
-import {Mode as ThreadMode, State as ThreadState} from '../../types/core/Thread'
+import ThreadsInterface, {Options, TransferData} from '../../types/core/Threads'
+import {Mode as ThreadMode} from '../../types/core/Thread'
 
 import Thread from './Thread'
 import TaskPool from '../partials/TaskPool'
 
 
 export default class Threads implements ThreadsInterface {
-    #maxThreadCount: number = 3
+    #maxThreadCount: number = 2
     #threads: Thread[] = []
 
 
-    constructor(maxThreads: number = 3) {
+    constructor(maxThreads: number = 2) {
         this.maxThreadCount = maxThreads
     }
 
     async executeSequential(taskPool: TaskPool, options: Omit<Options, 'threads'> = {}): Promise<any[]> {
         await this.#checkAvailableThreadSlots()
 
+        const transferData: TransferData = {
+            pool: taskPool,
+            poolSize: taskPool.pool.length,
+            step: options.step,
+            throttle: options.throttle
+        }
+
         const thread: Thread = new Thread(ThreadMode.SEQUENTIAL)
         this.#threads.push(thread)
 
-        const result: any[] = await thread.execute({
-            pool: taskPool.pool,
-            step: options.step
-        })
+        const result: any[] = await thread.execute(transferData)
 
-        taskPool.clear()
-        this.dispose()
-
-        return options.response === ResponseType.LAST ? result[result.length - 1] : result
+        return result[0]
     }
 
     async executeParallel(taskPool: TaskPool, options: Options = {}): Promise<any[]|any> {
         const defaultSlots: number = Math.max(1, this.#maxThreadCount - this.#threads.length)
-        const threadsPreferableToSpawn: number = Math.max(1, Math.min(options.threads ?? defaultSlots, this.maxThreadCount))
+        const threadsToSpawn: number = Math.min(Math.max(1, Math.min(options.threads ?? defaultSlots, this.maxThreadCount)), taskPool.pool.length)
+        await this.#checkAvailableThreadSlots(threadsToSpawn)
 
-        await this.#checkAvailableThreadSlots(threadsPreferableToSpawn)
-
-        const threadsToSpawn: number = Math.min(threadsPreferableToSpawn, taskPool.pool.length)
-
-        const syncedData: TransferData = {
-            pool: taskPool.pool,
+        const transferData: TransferData = {
+            pool: taskPool,
             poolSize: taskPool.pool.length,
             responses: [],
-            step: options.step
+            step: options.step,
+            throttle: options.throttle
         }
 
         const promises: Promise<any>[] = []
@@ -51,25 +50,12 @@ export default class Threads implements ThreadsInterface {
             const thread: Thread = new Thread(ThreadMode.PARALLEL)
             this.#threads.push(thread)
 
-            promises.push(thread.execute(syncedData))
+            promises.push(thread.execute(transferData))
         }
 
         await Promise.all(promises)
 
-        taskPool.clear()
-        this.dispose()
-
-        return options.response === ResponseType.LAST ? syncedData.responses![syncedData.responses!.length - 1] : syncedData.responses
-    }
-
-    dispose(): void {
-        for (let i = 0; i < this.#threads.length; i++) {
-            if(this.#threads[i].state === ThreadState.IDLE) {
-                this.#threads[i].terminate()
-                this.#threads.splice(i, 1)
-                i --
-            }
-        }
+        return transferData.responses
     }
 
     async #checkAvailableThreadSlots(minThreadCount?: number): Promise<void> {

@@ -12,8 +12,7 @@ describe('#Functionality', () => {
     }
 
     it('Constructing(Threads)', () => {
-        const expectedMaxThreadCount = Math.min(navigator.hardwareConcurrency - 1, threadCount)
-        expect(threads.maxThreadCount).toBe(expectedMaxThreadCount)
+        expect(threads.maxThreadCount).toBe(navigator.hardwareConcurrency - 1)
     })
 
 
@@ -74,14 +73,12 @@ describe('#Functionality', () => {
     })
 
 
-    /*
+    /* Worker is not defined
     it('Sequential execution', async () => {
-        expect(pool.pool.length).toBe(0)
         pool.push(square, {method: square, message: 3}, square, square)
 
         expect(await threads.executeSequential(pool)).toBeInstanceOf(Array)
     })
-
      */
 
 

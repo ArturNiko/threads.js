@@ -1,19 +1,19 @@
 {
   "compilerOptions": {
-    "target": "ES2019",
+    "target": "ES2021",
     "useDefineForClassFields": true,
-    "lib": ["DOM", "ES2017"],
+    "lib": ["DOM", "ES2023"],
     "strict": true,
     "resolveJsonModule": true,
     "moduleResolution": "node",
     "isolatedModules": true,
     "esModuleInterop": true,
     "noImplicitReturns": true,
+    "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "outDir": "dist"
+    "outDir": "./dist",  // Ensuring the output directory is prefixed with "./"
+    "rootDir": "./src"  // Adding rootDir to specify the source directory
 
   },
-  "include": [
-    "src/index.ts",
-  ]
+  "include": ["src/**/*.ts"]
 }

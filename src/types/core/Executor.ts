@@ -1,4 +1,4 @@
-export default interface LiveWorkerInterface {
+export default interface ExecutorInterface  {
     run(task: Function, value?: any): Promise<any>
 
     terminate(): void
@@ -6,5 +6,5 @@ export default interface LiveWorkerInterface {
 
 export enum Command {
     RUN = 'run',
-    TERMINATE = 'terminate',
+    TERMINATE = 'terminate'
 }

@@ -1,4 +1,3 @@
-import {Task} from '../partials/TaskPool'
 import TaskPool from '../../controllers/partials/TaskPool'
 
 
@@ -7,8 +6,6 @@ export default interface ThreadsInterface {
 
     executeParallel(taskPool: TaskPool, options?: Options): Promise<any[]|any>
 
-    dispose(): void
-
     set maxThreadCount(maxThreadsCount: number)
 
     get maxThreadCount(): number
@@ -16,24 +13,19 @@ export default interface ThreadsInterface {
 
 
 export interface TransferData {
-    pool: Task[]
-    poolSize?: number
+    pool: TaskPool
+    poolSize: number
     responses?: any[]
-    step?: Callback
+    step?: StepCallback
+    throttle?: ThrottleCallback
 }
 
 export interface Options {
-    step?: Callback
-    response?: ResponseType
     threads?: number
+    throttle?: TransferData['throttle']
+    step?: TransferData['step']
 }
 
 
-export enum ResponseType {
-    FULL = 'full',
-    LAST = 'last',
-}
-
-
-type Callback = (message: any, progress: number) => void
-
+export type StepCallback = (message: any, progress: number) => void
+export type ThrottleCallback = (() => Promise<boolean>) | (() => boolean)
