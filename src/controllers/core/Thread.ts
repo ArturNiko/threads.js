@@ -33,13 +33,6 @@ export default class Thread implements ThreadInterface {
             // If throttle is set, wait for it's completion
             if(data.throttle) await this.#waitForThrottleSuccess(data.throttle)
 
-            // Set up live connection
-            data.connect?.({
-                send:       (message: any) => this.send(message),
-                receive:    () => this.receive(),
-                terminate:  () => this.terminate()
-            })
-
             // Run the task and get the response
             const response = await this.#executor.run(task.method, task.message)
 
@@ -61,14 +54,6 @@ export default class Thread implements ThreadInterface {
         this.#executor.terminate()
 
         return responses
-    }
-
-    send(message: any): void {
-        this.#worker.send(message)
-    }
-
-    receive(): Promise<any> {
-        return this.#worker.receive()
     }
 
     terminate(): void {
