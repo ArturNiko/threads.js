@@ -18,16 +18,18 @@ export default class Thread implements ThreadInterface {
 
     async execute(data: TransferData): Promise<any[]> {
         this.#state = State.RUNNING
+        console.log(data.throttle)
 
         const responses: any[] = data?.responses ?? []
-        responses.length = data.poolSize ?? data.pool.length
+
+        const tasks = data.pool.pool
 
         while (data.pool.length && this.#state === State.RUNNING) {
             // Get the next task & remove it from the pool
-            const task: Task = data.pool.shift().pool[0]
+            const task: Task = tasks.splice(0, 1).at(0)!
 
-            // If the tasks relation is CHAINED, then the message of the next task is the response of the previous task
-            if(this.#mode === Mode.SEQUENTIAL) task.message = task.message ?? responses[task.index - 1]
+            // Sequential mode: set the message to the response of the previous task (if exists)
+            if(this.#mode === Mode.SEQUENTIAL) task.message = task?.message ?? responses.at(-1)
 
             // If throttle is set, wait for it's completion
             if(data.throttle) await this.#awaitThrottleConditionSuccess(data.throttle)
@@ -42,7 +44,7 @@ export default class Thread implements ThreadInterface {
             responses[task.index!] = response
 
             // Execute the step callback
-            const progress: number = 100 * responses.filter((response) => response !== undefined).length / responses.length
+            const progress: number = 100 * responses.filter((response) => response !== undefined).length / data.poolSize
             data.step?.(responses[task.index!], progress)
         }
 

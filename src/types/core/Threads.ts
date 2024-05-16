@@ -6,7 +6,9 @@ export default interface ThreadsInterface {
 
     executeParallel(taskPool: TaskPool, options?: Options): Promise<any[]|any>
 
-    dispose(): void
+    terminate(): void
+
+    softTerminate(): void
 
     set maxThreadCount(maxThreadsCount: number)
 
@@ -16,7 +18,7 @@ export default interface ThreadsInterface {
 
 export interface TransferData {
     pool: TaskPool
-    poolSize?: number
+    poolSize: number
     responses?: any[]
     step?: StepCallback
     throttle?: ThrottleCallback

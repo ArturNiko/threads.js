@@ -1,5 +1,5 @@
-import ThreadsInterface, {TransferData, Options} from '../../types/core/Threads'
-import {Mode as ThreadMode} from '../../types/core/Thread'
+import ThreadsInterface, {Options, TransferData} from '../../types/core/Threads'
+import {Mode as ThreadMode, State as ThreadState} from '../../types/core/Thread'
 
 import Thread from './Thread'
 import TaskPool from '../partials/TaskPool'
@@ -19,6 +19,7 @@ export default class Threads implements ThreadsInterface {
 
         const transferData: TransferData = {
             pool: taskPool,
+            poolSize: taskPool.pool.length,
             step: options.step,
             throttle: options.throttle
         }
@@ -28,9 +29,9 @@ export default class Threads implements ThreadsInterface {
 
         const result: any[] = await thread.execute(transferData)
 
-        this.dispose()
+        this.softTerminate()
 
-        return result
+        return result[0]
     }
 
     async executeParallel(taskPool: TaskPool, options: Options = {}): Promise<any[]|any> {
@@ -56,13 +57,19 @@ export default class Threads implements ThreadsInterface {
 
         await Promise.all(promises)
 
-        this.dispose()
+        this.softTerminate()
 
-        return [transferData.responses!.length - 1]
+        return transferData.responses
     }
 
-    dispose(): void {
+    terminate(): void {
         this.#threads.forEach((thread) => thread.terminate())
+    }
+
+    softTerminate(): void {
+        this.#threads.forEach((thread) => {
+            if(thread.state === ThreadState.IDLE) thread.terminate()
+        })
     }
 
     async #checkAvailableThreadSlots(minThreadCount?: number): Promise<void> {
