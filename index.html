@@ -97,6 +97,7 @@
 
         return {index: message?.index ?? 'None', counter}
     }
+
     const tasks1 = new TaskPool()
     for (let i = 0; i < 10; i++) {
         tasks1.push({method: test1, message: {index: i, message: i}}, test1)
@@ -106,8 +107,10 @@
     function test2(message) {
         return message + 1
     }
+
     const tasks2 = new TaskPool().push({method: test2, message: 1}, test2, {method: test2, message: 10}, test2, test2)
 
+    console.log('Tasks:', tasks1, tasks2)
     const button = document.querySelector('#run')
     button.addEventListener('click', async () => {
         button.classList.add('running')
@@ -124,7 +127,11 @@
             }
         )
 
-        const result2 = await threads.executeSequential(tasks2)
+        const result2 = threads.executeSequential(tasks2, {
+            step: (message) => console.log(message),
+            throttle: () => performance.now() > 2000
+        })
+
         const promises = Promise.all([result1, result2])
 
         console.log('Result:', await promises)
