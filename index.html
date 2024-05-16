@@ -84,7 +84,6 @@
 </main>
 
 <script type="module">
-
     import Threads, {TaskPool} from './src/index.ts'
 
     const threads = new Threads(navigator.hardwareConcurrency)
@@ -121,10 +120,7 @@
                     console.log(message)
                     document.querySelector('#progress').style.width = (progress) + '%'
                 },
-                throttle: () => {
-                    //Dynamic throttle can help to prevent the browser from freezing when running heavy tasks
-                    return performance.now() > 2000
-                }
+                throttle: () => performance.now() > 2000
             }
         )
 
