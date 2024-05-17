@@ -29,6 +29,7 @@
     "url": "https://github.com/ArturNiko/threads.js/issues"
   },
   "devDependencies": {
+    "@types/node": "^20.12.12",
     "@vitest/coverage-istanbul": "^1.2.1",
     "happy-dom": "^13.3.1",
     "tsup": "^8.0.1",

@@ -1,14 +1,16 @@
 {
   "compilerOptions": {
-    "target": "ES2021",
+    "target": "ES2022",
+    "module": "ESNext",
     "useDefineForClassFields": true,
-    "lib": ["DOM", "ES2023"],
+    "lib": ["DOM", "ESNext"],
     "strict": true,
     "resolveJsonModule": true,
     "moduleResolution": "node",
     "isolatedModules": true,
     "esModuleInterop": true,
     "noImplicitReturns": true,
+    "allowImportingTsExtensions": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "outDir": "./dist",  // Ensuring the output directory is prefixed with "./"
