@@ -9,7 +9,7 @@ export default class TaskPool implements TaskPoolInterface {
     }
 
     push(...tasks: TaskEntry[]): this {
-        if(!this.#checkSize(tasks)) return this
+        if(!this.#checkSize(tasks,  'push')) return this
 
         const preparedTasks = this.#prepareTasks(tasks)
         this.#pool.push(...preparedTasks)
@@ -20,7 +20,7 @@ export default class TaskPool implements TaskPoolInterface {
     }
 
     insert(index: number, ...tasks: TaskEntry[]): this {
-        if(!this.#checkSize(tasks)) return this
+        if(!this.#checkSize(tasks, 'insert')) return this
 
         this.#pool = [
             ...this.#pool.slice(0, index),
@@ -95,13 +95,13 @@ export default class TaskPool implements TaskPoolInterface {
         })
     }
 
-    #checkSize(tasks: TaskEntry[]): boolean {
+    #checkSize(tasks: TaskEntry[], taskName: string): boolean {
         if(this.#pool.length === this.maxSize) {
             console.warn('Pool is full')
             return false
         }
         if(this.#pool.length + tasks.length > this.maxSize) {
-            console.warn(`Pool size will exceed max size. Only ${this.maxSize - this.#pool.length} task/s can be inserted`)
+            console.warn(`Pool size will exceed max size. Only ${this.maxSize - this.#pool.length} task/s can be ${taskName}ed.`)
 
             return false
         }
