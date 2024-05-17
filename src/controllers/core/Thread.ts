@@ -6,7 +6,7 @@ import Executor from './Executor'
 
 
 export default class Thread implements ThreadInterface {
-    readonly #executor: Executor = new Executor()
+    readonly #executor: typeof Executor = new Executor()
     readonly #mode: Mode = Mode.PARALLEL
 
     #state: State = State.IDLE
@@ -63,7 +63,7 @@ export default class Thread implements ThreadInterface {
     #waitForThrottleSuccess = async (throttle: ThrottleCallback): Promise<void> => {
         return await new Promise<void>(async (resolve) => {
             if(await throttle()) return resolve()
-            const interval: number = setInterval(async () => {
+            const interval: NodeJS.Timeout|number = setInterval(async () => {
                 if (await throttle()) {
                     clearInterval(interval)
                     resolve()
