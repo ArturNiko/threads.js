@@ -108,8 +108,6 @@ describe('#Functionality', () => {
         pool2.insert(1, square).insert(2, square)
 
         expect(pool2.length).toBe(2)
-
-
     })
 
     /* Worker is not defined
@@ -118,7 +116,7 @@ describe('#Functionality', () => {
 
         expect(await threads.executeSequential(pool)).toBeInstanceOf(Array)
     })
-     */
+    */
 
 })
 
