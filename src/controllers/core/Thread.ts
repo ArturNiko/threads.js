@@ -2,21 +2,29 @@ import ThreadInterface, {Mode, State} from '../../types/core/Thread'
 import {ThrottleCallback, TransferData} from '../../types/core/Threads'
 import {Task} from '../../types/partials/TaskPool'
 
-import Executor from './Executor'
+import Environment from '../partials/Environment'
+
+const Executor = Environment.executor().then((executor) => executor)
 
 
 export default class Thread implements ThreadInterface {
-    readonly #executor: typeof Executor = new Executor()
     readonly #mode: Mode = Mode.PARALLEL
+
+    #executor: any
 
     #state: State = State.IDLE
 
-
     constructor(mode: Mode) {
+
         this.#mode = mode
     }
 
     async execute(data: TransferData): Promise<any[]> {
+        // Wait for the executor to be loaded
+        this.#executor = await this.#executor
+
+        console.log(new this.#executor())
+
         this.#state = State.RUNNING
 
         const responses: any[] = data?.responses ?? []

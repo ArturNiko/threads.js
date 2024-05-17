@@ -3,18 +3,23 @@ import {Mode as ThreadMode} from '../../types/core/Thread'
 
 import Thread from './Thread'
 import TaskPool from '../partials/TaskPool'
+import Environment from '../partials/Environment'
 
 
 export default class Threads implements ThreadsInterface {
     #maxThreadCount: number = 2
+    #loaded: boolean = false
     #threads: Thread[] = []
 
 
     constructor(maxThreads: number = 2) {
         this.maxThreadCount = maxThreads
+        this.#load().then(() => this.#loaded = true)
     }
 
     async executeSequential(taskPool: TaskPool, options: Omit<Options, 'threads'> = {}): Promise<any[]> {
+        await this.#await(() => this.#loaded)
+
         await this.#checkAvailableThreadSlots()
 
         const transferData: TransferData = {
@@ -33,6 +38,8 @@ export default class Threads implements ThreadsInterface {
     }
 
     async executeParallel(taskPool: TaskPool, options: Options = {}): Promise<any[]|any> {
+        await this.#await(() => this.#loaded)
+
         const defaultSlots: number = Math.max(1, this.#maxThreadCount - this.#threads.length)
         const threadsToSpawn: number = Math.min(Math.max(1, Math.min(options.threads ?? defaultSlots, this.maxThreadCount)), taskPool.pool.length)
         await this.#checkAvailableThreadSlots(threadsToSpawn)
@@ -58,14 +65,16 @@ export default class Threads implements ThreadsInterface {
         return transferData.responses
     }
 
-    async #checkAvailableThreadSlots(minThreadCount?: number): Promise<void> {
-        if (this.#threads.length > this.#maxThreadCount) await this.#awaitFreeThread(minThreadCount)
+    async #checkAvailableThreadSlots(minThreadCount: number = 1): Promise<void> {
+        if (this.#threads.length > this.#maxThreadCount) {
+            await this.#await(() => this.#maxThreadCount - this.#threads.length >= minThreadCount)
+        }
     }
 
-    async #awaitFreeThread(minThreadCount: number = 1): Promise<void> {
+    async #await(condition: Function) {
         return new Promise<void>((resolve): void => {
             const interval: NodeJS.Timeout|number = setInterval((): void => {
-                if (this.#maxThreadCount - this.#threads.length >= minThreadCount) {
+                if (condition()) {
                     clearInterval(interval)
                     resolve()
                 }
@@ -73,8 +82,16 @@ export default class Threads implements ThreadsInterface {
         })
     }
 
+    async #load(): Promise<void> {
+        Environment.threads()
+        await Environment.executor()
+
+        this.#loaded = true
+    }
+
+
     set maxThreadCount(maxThreadsCount: number) {
-        this.#maxThreadCount = Math.max(1, Math.min(maxThreadsCount ?? this.#maxThreadCount, navigator.hardwareConcurrency - 1))
+        this.#maxThreadCount = Math.max(1, Math.min(maxThreadsCount ?? this.#maxThreadCount, Environment.threads() - 1))
     }
 
     get maxThreadCount(): number {
