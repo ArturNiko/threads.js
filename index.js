@@ -21,13 +21,14 @@ async function run() {
         tasks.push({method: test1, message: {index: i, message: i}}, test1)
     }
 
+    console.log('Start')
     const result = await threads.executeParallel(tasks, {
             step: (message, progress) => console.log(message, progress),
             throttle: () => performance.now() > 2000
         }
     )
 
-    console.log(result)
+    console.log('End: ', result)
 }
 
 run().then()

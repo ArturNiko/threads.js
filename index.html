@@ -103,13 +103,11 @@
         tasks1.push({method: test1, message: {index: i, message: i}}, test1)
     }
 
-
+    const tasks2 = new TaskPool().push({method: test2, message: 1}, test2, {method: test2, message: 10}, test2, test2)
     function test2(message) {
         return message + 1
     }
-    const tasks2 = new TaskPool().push({method: test2, message: 1}, test2, {method: test2, message: 10}, test2, test2)
 
-    console.log('Tasks:', tasks1, tasks2)
     const button = document.querySelector('#run')
     button.addEventListener('click', async () => {
         button.classList.add('running')
