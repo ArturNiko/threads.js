@@ -1,7 +1,7 @@
 import ExecutorInterface, {Command} from '../../types/core/Executor'
 
 
-export default class Executor implements ExecutorInterface {
+export default class BrowserExecutor implements ExecutorInterface {
     readonly #worker: Worker
 
     #completedCallback: (message: any) => void = (): void => {}
