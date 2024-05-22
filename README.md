@@ -111,7 +111,8 @@ await threads.executeParallel(tasks, {
     //Options
     threads: 4,
     response: ResponseType.ALL,
-    step: (response, progress) => console.log(progress)
+    step: (response, progress) => console.log(progress),
+    throttle: () => performance.memory > 1000000 // Example of throttling function
 })
 
 await threads.executeSequential(tasks)
