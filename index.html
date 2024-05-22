@@ -107,7 +107,6 @@
     function test2(message) {
         return message + 1
     }
-
     const tasks2 = new TaskPool().push({method: test2, message: 1}, test2, {method: test2, message: 10}, test2, test2)
 
     console.log('Tasks:', tasks1, tasks2)
