@@ -1,18 +1,18 @@
-import ThreadInterface, {Mode, State} from '../../types/core/Thread'
 import {ThrottleCallback, TransferData} from '../../types/core/Threads'
+import ThreadInterface, {Mode, State} from '../../types/core/Thread'
+import {HybridExecutor} from '../../types/core/Executor'
 import {Task} from '../../types/partials/TaskPool'
-
-import Executor from './Executor'
 
 
 export default class Thread implements ThreadInterface {
-    readonly #executor: Executor = new Executor()
     readonly #mode: Mode = Mode.PARALLEL
+
+    #executor: HybridExecutor
 
     #state: State = State.IDLE
 
-
-    constructor(mode: Mode) {
+    constructor(Executor: new() => HybridExecutor, mode: Mode) {
+        this.#executor = new Executor()
         this.#mode = mode
     }
 
@@ -28,10 +28,10 @@ export default class Thread implements ThreadInterface {
             const task: Task = tasks.splice(0, 1).at(0)!
 
             // Sequential mode: set the message to the response of the previous task (if exists)
-            if(this.#mode === Mode.SEQUENTIAL) task.message = task?.message ?? responses.at(-1)
+            if (this.#mode === Mode.SEQUENTIAL) task.message = task?.message ?? responses.at(-1)
 
             // If throttle is set, wait for it's completion
-            if(data.throttle) await this.#waitForThrottleSuccess(data.throttle)
+            if (data.throttle) await this.#waitForThrottleSuccess(data.throttle)
 
             // Run the task and get the response
             const response = await this.#executor.run(task.method, task.message)
@@ -45,6 +45,7 @@ export default class Thread implements ThreadInterface {
             // Execute the step callback
             const progress: number = 100 * responses.filter((response) => response !== undefined).length / data.poolSize
             data.step?.(responses[task.index!], progress)
+
         }
 
         data.pool.clear()
@@ -61,8 +62,8 @@ export default class Thread implements ThreadInterface {
 
     #waitForThrottleSuccess = async (throttle: ThrottleCallback): Promise<void> => {
         return await new Promise<void>(async (resolve) => {
-            if(await throttle()) return resolve()
-            const interval: number = setInterval(async () => {
+            if (await throttle()) return resolve()
+            const interval: NodeJS.Timeout | number = setInterval(async () => {
                 if (await throttle()) {
                     clearInterval(interval)
                     resolve()
@@ -70,6 +71,7 @@ export default class Thread implements ThreadInterface {
             }, 50)
         })
     }
+
 
     get state(): State {
         return this.#state

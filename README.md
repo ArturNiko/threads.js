@@ -17,7 +17,7 @@
 
 ## Important ⚠️
 
-- This package is getting updated and restructured frequently. Any major changes will bump the minor version.
+- This package is getting updated and restructured frequently. Always check the [**CHANGELOG**](https://github.com/ArturNiko/threads.js/blob/main/CHANGELOG.md) after an update.
 - If you have troubles after an update, please check the documentation of the new version or install the previous one.
 
 
@@ -39,6 +39,8 @@ or
 
 ```typescript
 import Threads from '@a4turp/threads.js'
+// Or
+const Threads = require('@a4turp/threads.js').default
 
 // Maximum number of threads is calculated as navigator.hardwareConcurrency - 1.
 // Set the Maximum number of threads.
@@ -63,6 +65,8 @@ Here is the showcase of data preparation:
 
 ```typescript
 import {TaskPool} from '@a4turp/threads.js'
+// Or
+const {TaskPool} = require('@a4turp/threads.js')
 
 function square(message) {
     // If no message is passed, it will be set to 2 by default.
@@ -85,8 +89,14 @@ Here is the showcase of execution:
 /**
  * @param                            response: any         Executed task response.
  * @param                            progress: number      Progress of execution (0-100) // Helps to track the progress of execution.
+ * @description                      Callback function called after each task is executed.
  */
-type Callback = (message: any, progress: number) => void
+type StepCallback = (message: any, progress: number) => void
+
+/**
+ * @description                     This is dynamic throttling function that can be used to control the execution of tasks.
+ */
+type ThrottleCallback = (() => boolean) | (() => Promise<boolean>)
 
 enum ResponseType {
   ALL = 'ALL',                       // Returns all responses.
@@ -94,16 +104,18 @@ enum ResponseType {
 }
 
 interface Options {
-    step?: Callback                  // Callback function called after each task is executed.
-    threads?: number                 // If in range of 1 and maximum number of threads, tasks will be tried to execute on the specified number of threads.
     response?: ResponseType          // Response type.
+    threads?: number                 // If in range of 1 and maximum number of threads, tasks will be tried to execute on the specified number of threads.
+    throttle?: ThrottleCallback      // Throttle function.
+    step?: StepCallback              // Callback function called after each task is executed.
 }
 
 await threads.executeParallel(tasks, {
     //Options
     threads: 4,
     response: ResponseType.ALL,
-    step: (response, progress) => console.log(progress)
+    step: (response, progress) => console.log(progress),
+    throttle: () => performance.memory > 1000000 // Example of throttling function
 })
 
 await threads.executeSequential(tasks)
@@ -130,7 +142,8 @@ Here is the list of available methods with their types and descriptions:
  * @note                    If a task is a function, it will be converted to {method: Function, message: undefined}.
  *                          Length of replaced tasks is determined by the number of passed tasks.
  */
-tasks.insert(2, <Task>{method: square, message: 30}, square).insert(0, {method: square, message: 40})
+tasks.insert(2, <Task>{method: square, message: 30}, square)
+     .insert(0, {method: square, message: 40})
 ```
 
 ```typescript
@@ -141,7 +154,8 @@ tasks.insert(2, <Task>{method: square, message: 30}, square).insert(0, {method: 
  * @note                     If a task is a function, it will be converted to {method: Function, message: undefined}.
  *                           You can push all tasks at once or one by one.
  */
-tasks.push({method: square, message: 20}, square, {method: square, message: 0}).push({method: square, message: 10})
+tasks.push({method: square, message: 20}, square, {method: square, message: 0})
+     .push({method: square, message: 10})
 ```
 
 ```typescript
@@ -152,7 +166,7 @@ tasks.push({method: square, message: 20}, square, {method: square, message: 0}).
  *  @note                    Length is determined by the number of passed tasks.
  */
 
-tasks.replace(2, {method: square, message: 30}, square)
+tasks.replace(2, {method: square, message: 30})
 ```
 
 
@@ -213,6 +227,7 @@ await threads.executeParallel(tasks, <Options>{
     step: (response, progress) => console.log(progress)
 })
 ```
+
 
 ```typescript
 /**

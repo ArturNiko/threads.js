@@ -1,3 +1,5 @@
+import {PartialBy} from '../helpers'
+
 export default interface TaskPoolInterface {
     push(...tasks: (Task | Function)[]): this
 
@@ -24,3 +26,6 @@ export interface Task {
     method: Function
     message?: any
 }
+
+
+export type TaskEntry = (PartialBy<Task, 'index'> | Function)

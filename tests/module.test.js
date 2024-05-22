@@ -1,5 +1,4 @@
-import {describe, it, expect} from 'vitest'
-import Threads, {TaskPool} from '../dist/index.mjs'
+import Threads, {TaskPool} from '../src/index.ts'
 
 describe('#Functionality', () => {
     const threadCount = 12
@@ -24,7 +23,10 @@ describe('#Functionality', () => {
 
     it('Pool', () => {
         // Push&Insert
+
+        // square, [square, 3], square, square
         pool.push(square, {method: square, message: 3}, square, square)
+        // square, [square, 10], [square, 3], square, square
         pool.insert(1, {method: square, message: 10})
 
         expect(pool.length).toBe(5)
@@ -33,6 +35,8 @@ describe('#Functionality', () => {
         expect(pool.pool[3].index).toBe(3)
 
         // Remove
+
+        // square, [square, 3], square, square
         pool.remove(1)
 
         expect(pool.length).toBe(4)
@@ -41,12 +45,17 @@ describe('#Functionality', () => {
         expect(pool.pool[2].index).toBe(2)
 
         // Clear
+
+        // empty
         pool.clear()
 
         expect(pool.pool.length).toBe(0)
 
         // Replace
+
+        // square, [square, 2], [square, 3], square
         pool.push(square, {method: square, message: 2}, {method: square, message: 3}, square)
+        // square, [square, 10], [square, 3], square
         pool.replace(1, {method: square, message: 10})
 
         expect(pool.length).toBe(4)
@@ -55,7 +64,9 @@ describe('#Functionality', () => {
         expect(pool.pool[2].index).toBe(2)
 
         // Grab
-        const grabbedTask = pool.grab(0)
+
+        // [square, 10], [square, 3], square
+        const grabbedTask = pool.grab(0)[0]
 
         expect(grabbedTask.message).toBe(undefined)
         expect(pool.length).toBe(3)
@@ -64,14 +75,40 @@ describe('#Functionality', () => {
         expect(pool.pool[1].index).toBe(1)
 
         // Shift
+
+        // [square, 3], square
         pool.shift()
 
         expect(pool.length).toBe(2)
         expect(pool.pool[0].message).toBe(3)
         expect(pool.pool[1].message).toBe(undefined)
         expect(pool.pool[1].index).toBe(1)
-    })
 
+        // Pop
+
+        // [square, 3]
+        pool.pop()
+
+        expect(pool.length).toBe(1)
+        expect(pool.pool[0].message).toBe(3)
+        expect(pool.pool[0].index).toBe(0)
+
+        // Max size
+
+        const pool2 = new TaskPool(2)
+
+        // Max size push
+
+        pool2.push(square).push(square, {method: square, message: 3})
+
+        expect(pool2.length).toBe(1)
+
+        // Max size insert
+
+        pool2.insert(1, square).insert(2, square)
+
+        expect(pool2.length).toBe(2)
+    })
 
     /* Worker is not defined
     it('Sequential execution', async () => {
@@ -79,8 +116,7 @@ describe('#Functionality', () => {
 
         expect(await threads.executeSequential(pool)).toBeInstanceOf(Array)
     })
-     */
-
+    */
 
 })
 
