@@ -21,4 +21,3 @@ export enum Mode {
     PARALLEL = 'parallel',
     SEQUENTIAL = 'sequential'
 }
-

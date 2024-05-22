@@ -21,4 +21,3 @@ export default class Environment {
             : await import('../core/Executor.browser.ts').then((module) => module.default) as typeof BrowserExecutor
     }
 }
-
