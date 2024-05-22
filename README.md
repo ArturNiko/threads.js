@@ -17,7 +17,7 @@
 
 ## Important ⚠️
 
-- This package is getting updated and restructured frequently. Any major changes will bump the minor version.
+- This package is getting updated and restructured frequently. Always check the [**CHANGELOG**](https://github.com/ArturNiko/threads.js/blob/main/CHANGELOG.md) after an update.
 - If you have troubles after an update, please check the documentation of the new version or install the previous one.
 
 
@@ -38,8 +38,9 @@ or
 ## Initialization
 
 ```typescript
-require('@a4turp/threads.js')
 import Threads from '@a4turp/threads.js'
+// Or
+const Threads = require('@a4turp/threads.js').default
 
 // Maximum number of threads is calculated as navigator.hardwareConcurrency - 1.
 // Set the Maximum number of threads.
@@ -64,6 +65,8 @@ Here is the showcase of data preparation:
 
 ```typescript
 import {TaskPool} from '@a4turp/threads.js'
+// Or
+const {TaskPool} = require('@a4turp/threads.js')
 
 function square(message) {
     // If no message is passed, it will be set to 2 by default.
