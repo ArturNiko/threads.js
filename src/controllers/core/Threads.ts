@@ -1,5 +1,6 @@
 import ThreadsInterface, {Options, TransferData} from '../../types/core/Threads'
 import {Mode as ThreadMode} from '../../types/core/Thread'
+import {HybridExecutor} from '../../types/core/Executor'
 
 import Thread from './Thread'
 import TaskPool from '../partials/TaskPool'
@@ -10,6 +11,7 @@ export default class Threads implements ThreadsInterface {
     #maxThreadCount: number = 2
     #loaded: boolean = false
     #threads: Thread[] = []
+    #executor: (new() => HybridExecutor) | null = null
 
 
     constructor(maxThreads: number = 2) {
@@ -29,7 +31,7 @@ export default class Threads implements ThreadsInterface {
             throttle: options.throttle
         }
 
-        const thread: Thread = new Thread(ThreadMode.SEQUENTIAL)
+        const thread: Thread = new Thread(this.#executor!, ThreadMode.SEQUENTIAL)
         this.#threads.push(thread)
 
         const result: any[] = await thread.execute(transferData)
@@ -37,7 +39,7 @@ export default class Threads implements ThreadsInterface {
         return result[0]
     }
 
-    async executeParallel(taskPool: TaskPool, options: Options = {}): Promise<any[]|any> {
+    async executeParallel(taskPool: TaskPool, options: Options = {}): Promise<any[] | any> {
         await this.#await(() => this.#loaded)
 
         const defaultSlots: number = Math.max(1, this.#maxThreadCount - this.#threads.length)
@@ -54,7 +56,7 @@ export default class Threads implements ThreadsInterface {
 
         const promises: Promise<any>[] = []
         for (let i = 0; i < threadsToSpawn; i++) {
-            const thread: Thread = new Thread(ThreadMode.PARALLEL)
+            const thread: Thread = new Thread(this.#executor!, ThreadMode.PARALLEL)
             this.#threads.push(thread)
 
             promises.push(thread.execute(transferData))
@@ -73,7 +75,7 @@ export default class Threads implements ThreadsInterface {
 
     async #await(condition: Function) {
         return new Promise<void>((resolve): void => {
-            const interval: NodeJS.Timeout|number = setInterval((): void => {
+            const interval: NodeJS.Timeout | number = setInterval((): void => {
                 if (condition()) {
                     clearInterval(interval)
                     resolve()
@@ -84,7 +86,7 @@ export default class Threads implements ThreadsInterface {
 
     async #load(): Promise<void> {
         Environment.threads()
-        await Environment.executor()
+        this.#executor = await Environment.executor()
 
         this.#loaded = true
     }
