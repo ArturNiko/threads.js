@@ -69,9 +69,14 @@ export default class Thread implements ThreadInterface {
 
     #waitForThrottleSuccess = async (throttle: ThrottleCallback): Promise<void> => {
         return await new Promise<void>(async (resolve) => {
-            if (await throttle()) return resolve()
+            if (await throttle().catch(e => {
+                throw new Error(e)
+            })) return resolve()
+
             const interval: NodeJS.Timeout | number = setInterval(async () => {
-                if (await throttle()) {
+                if (await throttle().catch(e => {
+                    throw new Error(e)
+                })) {
                     clearInterval(interval)
                     resolve()
                 }

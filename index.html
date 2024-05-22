@@ -104,6 +104,7 @@
     }
 
     const tasks2 = new TaskPool().push({method: test2, message: 1}, test2, {method: test2, message: 10}, test2, test2)
+
     function test2(message) {
         return message + 1
     }
@@ -120,13 +121,17 @@
                     console.log(message)
                     document.querySelector('#progress').style.width = (progress) + '%'
                 },
-                throttle: () => performance.now() > 2000
+                throttle: async () => {
+                    throw new Error('Sad')
+                }
             }
         )
 
         const result2 = threads.executeSequential(tasks2, {
             step: (message) => console.log(message),
-            throttle: () => performance.now() > 2000
+            throttle: async () => {
+                throw new Error('Sad')
+            }
         })
 
         const promises = Promise.all([result1, result2])

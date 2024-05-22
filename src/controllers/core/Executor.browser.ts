@@ -17,6 +17,7 @@ export default class BrowserExecutor implements ExecutorInterface {
                         postMessage(value)
                         break
                     case 'terminate':
+                        console.log('Terminating worker')
                         self.close()
                         break
                 }
