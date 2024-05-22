@@ -48,8 +48,6 @@ export default class Thread implements ThreadInterface {
 
         }
 
-        data.pool.clear()
-
         this.#state = State.IDLE
         this.#executor.terminate()
 
