@@ -38,6 +38,7 @@ or
 ## Initialization
 
 ```typescript
+require('@a4turp/threads.js')
 import Threads from '@a4turp/threads.js'
 
 // Maximum number of threads is calculated as navigator.hardwareConcurrency - 1.
