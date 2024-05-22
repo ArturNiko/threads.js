@@ -10,7 +10,7 @@ export default class Environment {
     static threads(): number {
         if (Environment.#threads) return Environment.#threads
 
-        return Environment.#threads = Environment.#isNode ? require('os').cpus().length - 1 : navigator.hardwareConcurrency * 2 - 1
+        return Environment.#threads = Environment.#isNode ? require('os').cpus().length - 1 : navigator.hardwareConcurrency - 1
     }
 
     static async executor(): Promise<new() => HybridExecutor> {

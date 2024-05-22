@@ -93,7 +93,7 @@ export default class Threads implements ThreadsInterface {
 
 
     set maxThreadCount(maxThreadsCount: number) {
-        this.#maxThreadCount = Math.max(1, Math.min(maxThreadsCount ?? this.#maxThreadCount, Environment.threads() - 1))
+        this.#maxThreadCount = Math.max(1, Math.min(maxThreadsCount ?? this.#maxThreadCount, Environment.threads()))
     }
 
     get maxThreadCount(): number {
