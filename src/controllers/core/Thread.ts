@@ -30,14 +30,23 @@ export default class Thread implements ThreadInterface {
             // Sequential mode: set the message to the response of the previous task (if exists)
             if (this.#mode === Mode.SEQUENTIAL) task.message = task?.message ?? responses.at(-1)
 
-            // If throttle is set, wait for it's completion
-            if (data.throttle) await this.#waitForThrottleSuccess(data.throttle)
+            // If throttle is set, wait for its completion. If it fails, terminate the thread
+            if (data.throttle) await this.#waitForThrottleSuccess(data.throttle).catch(() => {
+                console.log(1)
+                this.#state = State.IDLE
+                this.#executor.terminate()
+                throw new Error('Throttle error')
+            })
 
             // Run the task and get the response
             const response = await this.#executor.run(task.method, task.message)
 
             // Check if the response is an error
-            if (response instanceof Error) throw new Error('Worker error: ' + response.stack)
+            if (response instanceof Error) {
+                this.#state = State.IDLE
+                this.#executor.terminate()
+                throw new Error('Worker error: ' + response.stack)
+            }
 
             // Save the response
             responses[task.index!] = response
