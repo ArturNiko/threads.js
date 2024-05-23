@@ -121,18 +121,16 @@
                     console.log(message)
                     document.querySelector('#progress').style.width = (progress) + '%'
                 },
-                throttle: async () => {
-                    throw new Error('Sad')
-                }
+                throttle: () => performance.memory.jsHeapSizeLimit - performance.memory.usedJSHeapSize > Math.pow(1024, 2)
             }
         )
 
+
         const result2 = threads.executeSequential(tasks2, {
             step: (message) => console.log(message),
-            throttle: async () => {
-                throw new Error('Sad')
-            }
+            throttle: () => performance.memory.jsHeapSizeLimit - performance.memory.usedJSHeapSize > Math.pow(1024, 2)
         })
+
 
         const promises = Promise.all([result1, result2])
 

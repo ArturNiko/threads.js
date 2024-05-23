@@ -10,6 +10,7 @@ export default class NodeExecutor implements ExecutorInterface {
     readonly #scriptPath: string
 
     #completedCallback: (message: any) => void = (): void => {}
+    #failedCallback: (error: string) => void = (): void => {}
 
     constructor() {
         const script = `   
@@ -21,10 +22,18 @@ export default class NodeExecutor implements ExecutorInterface {
                 parentPort.on('message', async (message) => {
                     switch (message.command) {
                     case 'run':
-                        const fn = new Function('return ' + message.task)()
-                        const value = await fn(message.value)
-                        parentPort.postMessage(value)
+                        try {
+                            const fn = new Function('return ' + message.task)()
+                            const value = await fn(message.value)
+                            parentPort.postMessage(value)
+                        
+                        }
+                        catch (e) {
+                            parentPort.postMessage({worker_callback_error: e.message})
+                        }
+                        
                         break
+                        
                     case 'terminate':
                         parentPort.close()
                         break
@@ -36,10 +45,14 @@ export default class NodeExecutor implements ExecutorInterface {
         writeFileSync(this.#scriptPath, script)
 
         this.#worker = new NodeWorker(this.#scriptPath)
-        this.#worker.on('message', (message: any) => this.#completedCallback(message))
-        this.#worker.on('error', (err: Error) => {
-            this.#workerSaveUnlink()
-            throw new Error('Worker internal error occurred ' + err.message)
+        this.#worker.on('message', (message: any) => {
+            return message.worker_callback_error
+                ? this.#failedCallback(`Worker callback error occurred: ${message.worker_callback_error}. Check the task function for errors.`)
+                : this.#completedCallback(message)
+        })
+
+        this.#worker.on('error', (err: ErrorEvent) => {
+            this.#completedCallback({error: `Worker internal error occurred: ${err.message}`})
         })
     }
 
@@ -47,6 +60,7 @@ export default class NodeExecutor implements ExecutorInterface {
         return await new Promise<any>((resolve) => {
             // Overwrite the callback to resolve the promise
             this.#completedCallback = (message: any): void => resolve(message)
+            this.#failedCallback = (error: string): void => resolve({error})
 
             this.#worker.postMessage({command: Command.RUN, task: task.toString(), value})
         })

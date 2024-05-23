@@ -39,7 +39,6 @@ export default class Thread implements ThreadInterface {
             // Run the task and get the response
             const response = await this.#executor.run(task.method, task.message)
 
-
             // Check if the response is an error and gracefully terminate the thread
             if (response.error) {
                 this.#state = State.IDLE
