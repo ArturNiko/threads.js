@@ -96,28 +96,36 @@ type StepCallback = (message: any, progress: number) => void
 /**
  * @description                     This is dynamic throttling function that can be used to control the execution of tasks.
  */
-type ThrottleCallback = (() => boolean) | (() => Promise<boolean>)
-
-enum ResponseType {
-  ALL = 'ALL',                       // Returns all responses.
-  LAST = 'LAST'                      // Returns only the last response.
-}
+type ThrottleCallback = () => Promise<boolean>|boolean
 
 interface Options {
-    response?: ResponseType          // Response type.
     threads?: number                 // If in range of 1 and maximum number of threads, tasks will be tried to execute on the specified number of threads.
     throttle?: ThrottleCallback      // Throttle function.
     step?: StepCallback              // Callback function called after each task is executed.
 }
 
+
+/**
+ * @param                   tasks: TaskPool, options?: Options
+ * @return                  Promise<any[]|void>
+ * @description             Executes passed tasks on multiple threads concurrently.
+ * @note                    The execution order is not guaranteed, but the results are returned in the order of the tasks.
+ */
 await threads.executeParallel(tasks, {
     //Options
     threads: 4,
-    response: ResponseType.ALL,
     step: (response, progress) => console.log(progress),
     throttle: () => performance.memory > 1000000 // Example of throttling function
 })
 
+/**
+ * @param                   tasks: TaskPool, options?: Options
+ * @return                  Promise<any>
+ * @description             Executes passed tasks on 1 thread sequentially.
+ * @notes                   - The message is passed from the previous task if it is not defined.
+ *                          - The execution order is guaranteed.
+ *                          - Last task's response is returned.
+ */
 await threads.executeSequential(tasks)
 ```
 
@@ -223,7 +231,6 @@ tasks.clear()
  */
 await threads.executeParallel(tasks, <Options>{
     threads: 4,
-    response: ResponseType.ALL,
     step: (response, progress) => console.log(progress)
 })
 ```
