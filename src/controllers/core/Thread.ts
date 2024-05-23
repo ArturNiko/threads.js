@@ -41,8 +41,6 @@ export default class Thread implements ThreadInterface {
 
             // Check if the response is an error and gracefully terminate the thread
             if (response.error) {
-                this.#state = State.IDLE
-                this.#executor.terminate()
                 console.error(response.error)
                 break
             }
