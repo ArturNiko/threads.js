@@ -28,4 +28,4 @@ export interface Options {
 
 
 export type StepCallback = (message: any, progress: number) => void
-export type ThrottleCallback = (() => Promise<boolean>) | (() => boolean)
+export type ThrottleCallback = () => Promise<boolean> | boolean

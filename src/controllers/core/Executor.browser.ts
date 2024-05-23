@@ -5,6 +5,7 @@ export default class BrowserExecutor implements ExecutorInterface {
     readonly #worker: Worker
 
     #completedCallback: (message: any) => void = (): void => {}
+    #failedCallback: (message: string) => void = (): void => {}
 
     constructor() {
         const script = `
@@ -12,10 +13,17 @@ export default class BrowserExecutor implements ExecutorInterface {
                 const data = message.data
                 switch (data.command) {
                     case 'run':
-                        const fn = new Function('return ' + data.task)()
-                        const value = await fn(data.value)
-                        postMessage(value)
+                        try {
+                            const fn = new Function('return ' + data.task)()
+                            const value = await fn(data.value)
+                            postMessage(value)
+                        }
+                        catch (e) {
+                           postMessage({worker_callback_error: e.message}) 
+                        }
+                        
                         break
+                        
                     case 'terminate':
                         self.close()
                         break
@@ -28,9 +36,14 @@ export default class BrowserExecutor implements ExecutorInterface {
 
         this.#worker = new Worker(url)
 
-        this.#worker.onmessage = (message: MessageEvent): void => this.#completedCallback(message.data)
-        this.#worker.onerror = (err: ErrorEvent) => {
-            throw new Error(`Worker internal error occurred ${err.message}`)
+        this.#worker.onmessage = (message: MessageEvent): void => {
+            return message.data.worker_callback_error
+                ? this.#failedCallback(`Worker callback error occurred: ${message.data.worker_callback_error}. Check the task function for errors.`)
+                : this.#completedCallback(message.data)
+        }
+
+        this.#worker.onerror = (err: ErrorEvent): void => {
+            this.#failedCallback(`Worker internal error occurred: ${err.message}`)
         }
     }
 
@@ -39,6 +52,7 @@ export default class BrowserExecutor implements ExecutorInterface {
         return await new Promise<any>((resolve) => {
             // Overwrite the callback to resolve the promise
             this.#completedCallback = (message: any): void => resolve(message)
+            this.#failedCallback = (error: string): void => resolve({error})
 
             this.#worker.postMessage({command: Command.RUN, task: task.toString(), value})
         })
