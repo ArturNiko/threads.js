@@ -32,20 +32,20 @@ export default class Thread implements ThreadInterface {
 
             // If throttle is set, wait for its completion. If it fails, terminate the thread
             if (data.throttle) await this.#waitForThrottleSuccess(data.throttle).catch(() => {
-                console.log(1)
                 this.#state = State.IDLE
                 this.#executor.terminate()
-                throw new Error('Throttle error')
             })
 
             // Run the task and get the response
             const response = await this.#executor.run(task.method, task.message)
 
-            // Check if the response is an error
-            if (response instanceof Error) {
+
+            // Check if the response is an error and gracefully terminate the thread
+            if (response.error) {
                 this.#state = State.IDLE
                 this.#executor.terminate()
-                throw new Error('Worker error: ' + response.stack)
+                console.error(response.error)
+                break
             }
 
             // Save the response
@@ -69,16 +69,23 @@ export default class Thread implements ThreadInterface {
 
     #waitForThrottleSuccess = async (throttle: ThrottleCallback): Promise<void> => {
         return await new Promise<void>(async (resolve) => {
-            if (await throttle().catch(e => {
-                throw new Error(e)
-            })) return resolve()
+            try {
+                if (await throttle()) return resolve()
+            }
+            catch (e) {
+                throw new Error(`Throttle error: ${e}`)
+            }
 
             const interval: NodeJS.Timeout | number = setInterval(async () => {
-                if (await throttle().catch(e => {
-                    throw new Error(e)
-                })) {
+                try {
+                    if (await throttle()) {
+                        clearInterval(interval)
+                        resolve()
+                    }
+                }
+                catch (e) {
                     clearInterval(interval)
-                    resolve()
+                    throw new Error(`Throttle error: ${e}`)
                 }
             }, 50)
         })
