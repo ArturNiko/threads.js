@@ -14,6 +14,7 @@
     - [**Execution**](#Execution)
     - [**Note**](#note)
 - [**API**](#api)
+- 
 
 ## Important ⚠️
 
@@ -279,3 +280,9 @@ tasks.length
 
 threads.maxThreadCount = 10
 ```
+
+## Deprecated
+
+- `execute` method is deprecated. Use `executeParallel` or `executeSequential` instead.
+- `dispose` method is deprecated. Threads are getting terminated gracefully after the execution is finished.
+- `ResponseType` execution option is deprecated.
