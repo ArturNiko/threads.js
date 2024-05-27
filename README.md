@@ -1,5 +1,7 @@
 ## Lightweight JS tool for managing threads and concurrent task execution
 
+[![NPM version](https://img.shields.io/npm/v/@a4turp/threads.jsc)](https://www.npmjs.com/package/fastify-threads)
+
 #### Migrated from [`@a4turp/multithreading`](https://www.npmjs.com/package/@a4turp/multithreading)
 
 <br>
