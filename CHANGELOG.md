@@ -28,5 +28,17 @@
 |:------------------------------------------|:--------------------------------------------------------------------------------------------:|
 | <div style="width: 62px">Safety 🛡️</div> | Threads are now getting terminated gracefully, even if an error occurs during the execution. | 
 | Fixes 🐞                                  |                                Fixed throttle error handling.                                |                                        
+
+
+
+
+### Version 1.6.2 → 1.6.5
+
+### Date: 27. Mai 2024
+
+| Type                                      |       Description        | 
+|:------------------------------------------|:------------------------:|
+| Fixes 🐞                                  |  Fixed threads cleaning  |  
+| <div style="width: 71px">Support ⚙️</div> | NPM build file for Node  |
                                                 
 

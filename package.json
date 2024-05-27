@@ -1,6 +1,6 @@
 {
   "name": "@a4turp/threads.js",
-  "version": "1.6.4",
+  "version": "1.6.5",
   "author": "Artur Papikian",
   "license": "MIT",
   "description": "Light and easy web-tool for accessing multiple threads via web workers.",
@@ -29,6 +29,12 @@
   "bugs": {
     "url": "https://github.com/ArturNiko/threads.js/issues"
   },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "devDependencies": {
     "@types/node": "^20.12.12",
     "@vitest/coverage-istanbul": "^1.2.1",

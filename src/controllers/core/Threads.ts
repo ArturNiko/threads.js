@@ -35,7 +35,9 @@ export default class Threads implements ThreadsInterface {
         this.#threads.push(thread)
 
         const result: any[] = await thread.execute(transferData)
+
         taskPool.clear()
+        this.#threads = []
 
         return result[0]
     }
@@ -64,7 +66,9 @@ export default class Threads implements ThreadsInterface {
         }
 
         await Promise.all(promises)
+
         taskPool.clear()
+        this.#threads = []
 
         return transferData.responses
     }
