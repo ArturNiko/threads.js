@@ -1,6 +1,6 @@
 {
   "name": "@a4turp/threads.js",
-  "version": "1.6.5",
+  "version": "1.6.6",
   "author": "Artur Papikian",
   "license": "MIT",
   "description": "Light and easy web-tool for accessing multiple threads via web workers.",
@@ -36,13 +36,13 @@
     "CHANGELOG.md"
   ],
   "devDependencies": {
-    "@types/node": "^20.12.12",
-    "@vitest/coverage-istanbul": "^1.2.1",
-    "happy-dom": "^13.3.1",
-    "tsup": "^8.0.1",
-    "typescript": "^5.3.3",
-    "vite": "^5.0.12",
-    "vitest": "^1.2.1"
+    "@types/node": "^20.14.2",
+    "@vitest/coverage-istanbul": "^1.6.0",
+    "happy-dom": "^13.10.1",
+    "tsup": "^8.1.0",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.13",
+    "vitest": "^1.6.0"
   },
   "keywords": [
     "multithreading",

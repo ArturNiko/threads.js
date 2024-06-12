@@ -46,7 +46,7 @@ export default class NodeExecutor implements ExecutorInterface {
 
         this.#worker = new NodeWorker(this.#scriptPath)
         this.#worker.on('message', (message: any) => {
-            return message.worker_callback_error
+            return message?.worker_callback_error
                 ? this.#failedCallback(`Worker callback error occurred: ${message.worker_callback_error}. Check the task function for errors.`)
                 : this.#completedCallback(message)
         })

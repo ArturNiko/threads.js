@@ -37,7 +37,7 @@ export default class BrowserExecutor implements ExecutorInterface {
         this.#worker = new Worker(url)
 
         this.#worker.onmessage = (message: MessageEvent): void => {
-            return message.data.worker_callback_error
+            return message.data?.worker_callback_error
                 ? this.#failedCallback(`Worker callback error occurred: ${message.data.worker_callback_error}. Check the task function for errors.`)
                 : this.#completedCallback(message.data)
         }

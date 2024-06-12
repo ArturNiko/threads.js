@@ -40,5 +40,15 @@
 |:------------------------------------------|:------------------------:|
 | Fixes 🐞                                  |  Fixed threads cleaning  |  
 | <div style="width: 71px">Support ⚙️</div> | NPM build file for Node  |
-                                                
 
+
+
+
+### Version 1.6.5 → 1.6.6
+
+### Date: 16. Juni 2024
+
+| Type     |             Description              |
+|:---------|:------------------------------------:|
+| Fixes 🐞 | [HOTFIX] Worker internal error fixed |
+| Dev 🛠   |         Updated dependencies         |
