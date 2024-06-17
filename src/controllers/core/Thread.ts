@@ -1,5 +1,5 @@
 import {ThrottleCallback, TransferData} from '../../types/core/Threads'
-import ThreadInterface, {Mode, State, Event, ThreadEvent, ThreadEventsOptions} from '../../types/core/Thread'
+import ThreadInterface, {Mode, State, Event} from '../../types/core/Thread'
 import {HybridExecutor} from '../../types/core/Executor'
 import {Task} from '../../types/partials/TaskPool'
 
@@ -9,7 +9,7 @@ export default class Thread implements ThreadInterface {
 
     #state: State = State.IDLE
 
-    #events: Map<Event, ThreadEvent[]> = new Map()
+    #events: Map<Event, Function[]> = new Map()
 
     constructor(Executor: new() => HybridExecutor) {
         this.#executor = new Executor()
@@ -22,7 +22,7 @@ export default class Thread implements ThreadInterface {
 
         this.#emit(Event.PROGRESS, this)
 
-        const responses: any[] = data.responses
+        const responses: any[] = data?.responses ?? []
 
         const tasks: Task[] = data.pool.pool
 
@@ -78,23 +78,16 @@ export default class Thread implements ThreadInterface {
         this.#state = State.INTERRUPTED
     }
 
-    on(event: Event, callback: (data: any) => void, options?: ThreadEventsOptions): void {
+    on(event: Event, callback: (data: any) => void): void {
         if (!this.#events.has(event)) this.#events.set(event, [])
 
-        this.#events.get(event)!.push({
-            callback,
-            options
-        })
+        this.#events.get(event)!.push(callback)
     }
 
     #emit(event: Event, data: any): void {
         if (!this.#events.has(event)) return
 
-        this.#events.get(event)!.forEach((threadEvent: ThreadEvent, i: number): void => {
-            threadEvent.callback(data)
-
-            if (threadEvent.options?.once) this.#events.get(event)!.splice(i, 1)
-        })
+        this.#events.get(event)!.forEach((callback) => callback(data))
     }
 
     async #waitForThrottleSuccess(throttle: ThrottleCallback): Promise<void> {

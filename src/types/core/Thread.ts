@@ -28,12 +28,3 @@ export enum Event {
     'COMPLETE' = 'complete',
     'ERROR' = 'error'
 }
-
-export interface ThreadEvent {
-    callback: Function
-    options?: ThreadEventsOptions
-}
-
-export interface ThreadEventsOptions {
-    once?: boolean
-}
