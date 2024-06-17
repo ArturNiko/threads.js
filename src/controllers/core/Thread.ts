@@ -1,7 +1,12 @@
+import ThreadEvent from './ThreadEvent.ts'
+
+import {Type as EventType, Options as ThreadEventOptions} from '../../types/core/ThreadEvent.ts'
+
 import {ThrottleCallback, TransferData} from '../../types/core/Threads'
-import ThreadInterface, {Mode, State, Event, ThreadEvent, ThreadEventsOptions} from '../../types/core/Thread'
+import ThreadInterface, {Mode, State} from '../../types/core/Thread'
 import {HybridExecutor} from '../../types/core/Executor'
 import {Task} from '../../types/partials/TaskPool'
+
 
 
 export default class Thread implements ThreadInterface {
@@ -9,18 +14,17 @@ export default class Thread implements ThreadInterface {
 
     #state: State = State.IDLE
 
-    #events: Map<Event, ThreadEvent[]> = new Map()
+    #events: ThreadEvent =  new ThreadEvent()
 
     constructor(Executor: new() => HybridExecutor) {
         this.#executor = new Executor()
     }
 
-    async execute(data: TransferData, mode: Mode = Mode.SEQUENTIAL): Promise<any[]> {
+    async execute(data: TransferData, mode: Mode = Mode.SEQUENTIAL): Promise<void> {
         if (this.#state !== State.IDLE) throw 'Thread is already running (Internal Controller Error)'
 
         this.#state = State.RUNNING
-
-        this.#emit(Event.PROGRESS, this)
+        this.#emit(EventType.PROGRESS, this)
 
         const responses: any[] = data.responses
 
@@ -39,10 +43,7 @@ export default class Thread implements ThreadInterface {
             //@TODO: fix TS2367
             //@ts-ignore
             if(this.#state === State.INTERRUPTED) {
-                this.#state = State.IDLE
-                this.#executor.terminate()
-
-                this.#emit(Event.ERROR, this)
+                this.#emit(EventType.ERROR, this)
 
                 break
             }
@@ -52,8 +53,7 @@ export default class Thread implements ThreadInterface {
 
             // Check if the response is an error and gracefully terminate the thread
             if (response?.error) {
-                console.error(response.error)
-                this.#emit(Event.ERROR, this)
+                this.#emit(EventType.ERROR, this)
 
                 break
             }
@@ -69,32 +69,19 @@ export default class Thread implements ThreadInterface {
         this.#state = State.IDLE
         this.#executor.terminate()
 
-        this.#emit(Event.COMPLETE, this)
-
-        return responses
+        this.#emit(EventType.COMPLETE, this)
     }
 
     terminate(): void {
         this.#state = State.INTERRUPTED
     }
 
-    on(event: Event, callback: (data: any) => void, options?: ThreadEventsOptions): void {
-        if (!this.#events.has(event)) this.#events.set(event, [])
-
-        this.#events.get(event)!.push({
-            callback,
-            options
-        })
+    on(event: EventType, callback: (data: any) => void, options?: ThreadEventOptions): void {
+        this.#events.on(event, callback, options)
     }
 
-    #emit(event: Event, data: any): void {
-        if (!this.#events.has(event)) return
-
-        this.#events.get(event)!.forEach((threadEvent: ThreadEvent, i: number): void => {
-            threadEvent.callback(data)
-
-            if (threadEvent.options?.once) this.#events.get(event)!.splice(i, 1)
-        })
+    #emit(event: EventType, data: any): void {
+        this.#events.emit(event, data)
     }
 
     async #waitForThrottleSuccess(throttle: ThrottleCallback): Promise<void> {

@@ -1,10 +1,14 @@
-import ThreadsInterface, {Options, TransferData} from '../../types/core/Threads'
-import {Mode as ThreadMode, State as ThreadState, Event as ThreadEvent} from '../../types/core/Thread'
-import {HybridExecutor} from '../../types/core/Executor'
-
 import Thread from './Thread'
 import TaskPool from '../partials/TaskPool'
 import Environment from '../partials/Environment'
+
+import ThreadsInterface, {Options, TransferData} from '../../types/core/Threads'
+import {Mode as ThreadMode, State as ThreadState} from '../../types/core/Thread.ts'
+import {Type as ThreadEventType} from '../../types/core/ThreadEvent.ts'
+
+import {HybridExecutor} from '../../types/core/Executor'
+
+
 
 
 export default class Threads implements ThreadsInterface {
@@ -39,11 +43,7 @@ export default class Threads implements ThreadsInterface {
             responses: []
         }
 
-        const thread: Thread = new Thread(this.#executor!)
-
-        await thread.execute(transferData, ThreadMode.SEQUENTIAL)
-
-        taskPool.clear()
+        await this.#loadAndRun(ThreadMode.SEQUENTIAL, transferData)
 
         return transferData.responses[0]
     }
@@ -64,8 +64,6 @@ export default class Threads implements ThreadsInterface {
 
         await this.#loadAndRun(ThreadMode.PARALLEL, transferData, threadsToSpawn)
 
-        taskPool.clear()
-
         return transferData.responses
     }
 
@@ -79,9 +77,11 @@ export default class Threads implements ThreadsInterface {
         const [idleThreads, runningThreads]: [Thread[], Thread[]] = [[], []]
 
         this.#threads.forEach((thread: Thread): void => {
+
             if (thread.state === ThreadState.IDLE) idleThreads.push(thread)
             else if (thread.state === ThreadState.RUNNING) runningThreads.push(thread)
         })
+
 
         const promises: Promise<any>[] = []
 
@@ -90,10 +90,11 @@ export default class Threads implements ThreadsInterface {
             --amount
         })
 
+
         if(amount === 0) return await Promise.all(promises)
 
         runningThreads.splice(0, amount).forEach((thread: Thread): void => {
-            thread.on(ThreadEvent.COMPLETE, (thread: Thread): void => {
+            thread.on(ThreadEventType.COMPLETE, (thread: Thread): void => {
                 if(transferData.pool.pool.length > 0) return
 
                 promises.push(thread.execute(transferData, mode))
