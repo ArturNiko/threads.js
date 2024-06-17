@@ -6,18 +6,25 @@ import ExecutorInterface from './Executor'
 export default interface ThreadInterface {
     execute(data: TransferData): Promise<any[]>
 
-    get state(): State
-
     terminate: ExecutorInterface['terminate']
+
+    state: State
 }
 
 
 export enum State {
     IDLE = 'idle',
-    RUNNING = 'running'
+    RUNNING = 'running',
+    INTERRUPTED = 'interrupted'
 }
 
 export enum Mode {
     PARALLEL = 'parallel',
     SEQUENTIAL = 'sequential'
+}
+
+export enum Event {
+    'PROGRESS' = 'progress',
+    'COMPLETE' = 'complete',
+    'ERROR' = 'error'
 }
