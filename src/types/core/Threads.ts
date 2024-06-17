@@ -6,16 +6,16 @@ export default interface ThreadsInterface {
 
     executeParallel(taskPool: TaskPool, options?: Options): Promise<any[]|any>
 
-    set maxThreadCount(maxThreadsCount: number)
+    set threadCount(maxThreadsCount: number)
 
-    get maxThreadCount(): number
+    get threadCount(): number
 }
 
 
 export interface TransferData {
     pool: TaskPool
     poolSize: number
-    responses?: any[]
+    responses: any[]
     step?: StepCallback
     throttle?: ThrottleCallback
 }
