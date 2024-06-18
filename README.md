@@ -117,8 +117,8 @@ interface Options {
 await threads.executeParallel(tasks, {
     //Options
     threads: 4,
-    step: (response, progress) => console.log(progress),
-    throttle: () => performance.memory > 1000000 // Example of throttling function
+    throttle: () => memoryUsage < 1000000, // Example of throttling function
+    step: (response, progress) => console.log(progress)
 })
 
 /**
@@ -144,6 +144,74 @@ await threads.executeSequential(tasks)
 
 ### Methods
 Here is the list of available methods with their types and descriptions:
+
+#### Threads
+
+```typescript
+
+/**
+ *  @param                   tasks: TaskPool, options?: Options
+ *  @return                  Promise<any[]|void>
+ *  @description             Executes passed tasks on multiple threads concurrently.
+ */
+await threads.executeParallel(tasks, <Options>{
+    threads: 4,
+    throttle: () => memoryUsage < 1000000,
+    step: (response, progress) => console.log(progress)
+})
+```
+
+
+```typescript
+/**
+ *  @param                   tasks: TaskPool, options?: Options
+ *  @return                  Promise<any[]|void>
+ *  @description             Executes passed tasks on 1 thread sequentially.
+ *  @note                    As you saw earlier some tasks may have not any message. In sequential execution,
+ *                           the message is passed from the previous task if it is not defined.
+ */
+await threads.executeSequential(tasks)
+```
+
+```typescript
+/**
+ * @description             Terminate the threads.
+ * @note                    Running threads will be terminated gracefully, finished tasks will be outputted.
+ */
+threads.terminate()
+```
+
+```typescript
+/**
+ * @description             Terminate and reset the threads.
+ */
+threads.reset()
+```
+
+
+```typescript
+/**
+ *  @param                   tasks: TaskPool, options?: Options
+ *  @return                  Promise<any[]|void>
+ *  @description             Executes passed tasks on 1 thread sequentially.
+ *  @note                    As you saw earlier some tasks may have not any message. In sequential execution,
+ *                           the message is passed from the previous task if it is not defined.
+ */
+await threads.executeSequential(tasks)
+```
+
+```typescript
+
+/**
+ * @return                  number
+ * @description             Returns the maximum number of threads.
+ */
+
+threads.threadCount = 10
+```
+
+
+#### TaskPool
 
 ```typescript
 /**
@@ -226,34 +294,6 @@ tasks.clear()
 ```
 
 ```typescript
-
-/**
- *  @param                   tasks: TaskPool, options?: Options
- *  @return                  Promise<any[]|void>
- *  @description             Executes passed tasks on multiple threads concurrently.
- */
-await threads.executeParallel(tasks, <Options>{
-    threads: 4,
-    step: (response, progress) => console.log(progress)
-})
-```
-
-
-```typescript
-/**
- *  @param                   tasks: TaskPool, options?: Options
- *  @return                  Promise<any[]|void>
- *  @description             Executes passed tasks on 1 thread sequentially.
- *  @note                    As you saw earlier some tasks may have not any message. In sequential execution,
- *                           the message is passed from the previous task if it is not defined.
- */
-await threads.executeSequential(tasks)
-```
-
-### Properties
-Additionally, you can access&modify some properties:
-
-```typescript
 /**
  * @return                  Array<Task>
  * @description             Returns the pool array.
@@ -273,15 +313,6 @@ tasks.pool
 tasks.length
 ```
 
-```typescript
-
-/**
- * @return                  number
- * @description             Returns the maximum number of threads.
- */
-
-threads.maxThreadCount = 10
-```
 
 ## Deprecated
 
