@@ -1,4 +1,4 @@
-export default interface ThreadEventInterface {
+export default interface EventInterface {
     on(event: Type, callback: (data: any) => void, options?: Options): void
     emit(event: Type, data: any): void
 }
@@ -8,7 +8,7 @@ export enum Type {
     'ERROR' = 'error'
 }
 
-export interface Event {
+export interface Entry {
     callback: Function
     options?: Options
 }

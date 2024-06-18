@@ -1,6 +1,6 @@
-import ThreadEvent from './ThreadEvent.ts'
+import Event from './utils/Event.ts'
 
-import {Type as EventType, Options as ThreadEventOptions} from '../../types/core/ThreadEvent.ts'
+import {Type as EventType, Options as EventOptions} from '../../types/core/utils/Event.ts'
 
 import {ThrottleCallback, TransferData} from '../../types/core/Threads'
 import ThreadInterface, {Mode, State} from '../../types/core/Thread'
@@ -14,7 +14,7 @@ export default class Thread implements ThreadInterface {
 
     #state: State = State.IDLE
 
-    #events: ThreadEvent =  new ThreadEvent()
+    #events: Event = new Event()
 
     constructor(Executor: new() => HybridExecutor) {
         this.#executor = new Executor()
@@ -22,13 +22,14 @@ export default class Thread implements ThreadInterface {
 
     async execute(data: TransferData, mode: Mode = Mode.SEQUENTIAL): Promise<void> {
         if (this.#state !== State.IDLE) throw 'Thread is already running (Internal Controller Error)'
-
         this.#state = State.RUNNING
-        this.#emit(EventType.PROGRESS, this)
 
+        this.#emit(EventType.PROGRESS, this)
         const responses: any[] = data.responses
 
         const tasks: Task[] = data.pool.pool
+
+        console.log(mode, data.pool.length, this.state)
 
         while (data.pool.length && this.#state === State.RUNNING) {
             // Get the next task & remove it from the pool
@@ -67,16 +68,17 @@ export default class Thread implements ThreadInterface {
         }
 
         this.#state = State.IDLE
-        this.#executor.terminate()
 
         this.#emit(EventType.COMPLETE, this)
     }
 
     terminate(): void {
+        this.#executor.terminate()
+
         this.#state = State.INTERRUPTED
     }
 
-    on(event: EventType, callback: (data: any) => void, options?: ThreadEventOptions): void {
+    on(event: EventType, callback: (data: any) => void, options?: EventOptions): void {
         this.#events.on(event, callback, options)
     }
 

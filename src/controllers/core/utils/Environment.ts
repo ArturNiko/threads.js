@@ -1,6 +1,6 @@
-import {HybridExecutor} from '../../types/core/Executor'
-import BrowserExecutor from '../core/Executor.browser'
-import NodeExecutor from '../core/Executor.node'
+import {HybridExecutor} from '../../../types/core/Executor.ts'
+import BrowserExecutor from '../Executor.browser.ts'
+import NodeExecutor from '../Executor.node.ts'
 
 export default class Environment {
     static #isNode: boolean = typeof window === 'undefined' && typeof process !== 'undefined' && process.versions != null && process.versions.node != null
@@ -17,7 +17,7 @@ export default class Environment {
         if (Environment.#executor) return Environment.#executor
 
         return Environment.#executor = Environment.#isNode
-            ? await import('../core/Executor.node.ts').then((module) => module.default) as typeof NodeExecutor
-            : await import('../core/Executor.browser.ts').then((module) => module.default) as typeof BrowserExecutor
+            ? await import('../Executor.node.ts').then((module) => module.default) as typeof NodeExecutor
+            : await import('../Executor.browser.ts').then((module) => module.default) as typeof BrowserExecutor
     }
 }
