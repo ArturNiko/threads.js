@@ -99,15 +99,20 @@
         return {index: message?.index ?? 'None', counter}
     }
 
-    const tasks1 = new TaskPool()
-    for (let i = 0; i < 10; i++) {
-        tasks1.push({method: test1, message: {index: i, message: i}}, test1)
-    }
-
-    const tasks2 = new TaskPool().push({method: test2, message: 1}, test2, {method: test2, message: 10}, test2, test2)
-
     function test2(message) {
         return message + 1
+    }
+
+    function generateParTasks() {
+        const tasks = new TaskPool()
+        for (let i = 0; i < 10; i++) {
+            tasks.push({method: test1, message: {index: i, message: i}}, test1)
+        }
+        return tasks
+    }
+
+    function generateSeqTasks() {
+        return new TaskPool().push({method: test2, message: 1}, test2, {method: test2, message: 10}, test2, test2)
     }
 
     const button = document.querySelector('#run')
@@ -117,24 +122,43 @@
 
         console.time('Execution took')
 
-        const result2 = threads.executeSequential(tasks2, {
-            step: (message) => console.log(message),
+        const result1 = threads.executeSequential(generateSeqTasks(), {
+            //step: (message) => console.log(message),
             throttle: () => performance.memory.jsHeapSizeLimit - performance.memory.usedJSHeapSize > Math.pow(1024, 2)
         })
 
-        const result1 = threads.executeParallel(tasks1, {
+        const result2 = threads.executeSequential(generateSeqTasks(), {
+            //step: (message) => console.log(message),
+            throttle: () => performance.memory.jsHeapSizeLimit - performance.memory.usedJSHeapSize > Math.pow(1024, 2)
+        })
+
+        const result3 = threads.executeParallel(generateParTasks(), {
                 step: (message, progress) => {
-                    console.log(message)
+                    //console.log(message)
                     document.querySelector('#progress').style.width = (progress) + '%'
                 },
                 throttle: () => performance.memory.jsHeapSizeLimit - performance.memory.usedJSHeapSize > Math.pow(1024, 2)
             }
         )
 
+        const result4 = threads.executeParallel(generateParTasks(), {
+                step: (message, progress) => {
+                    //console.log(message)
+                    document.querySelector('#progress').style.width = (progress) + '%'
+                },
+                throttle: () => performance.memory.jsHeapSizeLimit - performance.memory.usedJSHeapSize > Math.pow(1024, 2)
+            }
+        )
+
+        const result5 = threads.executeSequential(generateSeqTasks(), {
+            //step: (message) => console.log(message),
+            throttle: () => performance.memory.jsHeapSizeLimit - performance.memory.usedJSHeapSize > Math.pow(1024, 2)
+        })
 
 
 
-        const promises = Promise.all([result2, result1])
+
+        const promises = Promise.all([result1, result2, result3, result4, result5])
 
         console.log('Result:', await promises)
         console.timeEnd('Execution took')
