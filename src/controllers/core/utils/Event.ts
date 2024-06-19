@@ -1,6 +1,6 @@
-import ThreadEventInterface, {Type, Entry, Options} from '../../../types/core/utils/Event.ts'
+import EventInterface, {Type, Entry, Options} from '../../../types/core/utils/Event.ts'
 
-export default class Event implements ThreadEventInterface {
+export default class Event implements EventInterface {
     #events: Map<Type, Entry[]> = new Map()
 
     on(event: Type, callback: (data: any) => void, options?: Options): void {

@@ -123,27 +123,28 @@
         console.time('Execution took')
 
         const result1 = threads.executeSequential(generateSeqTasks(), {
-            //step: (message) => console.log(message),
+            step: (message) => console.log(1),
             throttle: () => performance.memory.jsHeapSizeLimit - performance.memory.usedJSHeapSize > Math.pow(1024, 2)
         })
 
         const result2 = threads.executeSequential(generateSeqTasks(), {
-            //step: (message) => console.log(message),
+            step: (message) => console.log(2),
             throttle: () => performance.memory.jsHeapSizeLimit - performance.memory.usedJSHeapSize > Math.pow(1024, 2)
         })
 
         const result3 = threads.executeParallel(generateParTasks(), {
                 step: (message, progress) => {
-                    //console.log(message)
+                    console.log(3)
                     document.querySelector('#progress').style.width = (progress) + '%'
                 },
                 throttle: () => performance.memory.jsHeapSizeLimit - performance.memory.usedJSHeapSize > Math.pow(1024, 2)
             }
         )
 
+
         const result4 = threads.executeParallel(generateParTasks(), {
                 step: (message, progress) => {
-                    //console.log(message)
+                    console.log(4)
                     document.querySelector('#progress').style.width = (progress) + '%'
                 },
                 throttle: () => performance.memory.jsHeapSizeLimit - performance.memory.usedJSHeapSize > Math.pow(1024, 2)
@@ -151,14 +152,18 @@
         )
 
         const result5 = threads.executeSequential(generateSeqTasks(), {
-            //step: (message) => console.log(message),
+            step: (message) => console.log(5),
+            throttle: () => performance.memory.jsHeapSizeLimit - performance.memory.usedJSHeapSize > Math.pow(1024, 2)
+        })
+
+        const result6 = threads.executeSequential(generateSeqTasks(), {
+            step: (message) => console.log(6),
             throttle: () => performance.memory.jsHeapSizeLimit - performance.memory.usedJSHeapSize > Math.pow(1024, 2)
         })
 
 
 
-
-        const promises = Promise.all([result1, result2, result3, result4, result5])
+        const promises = Promise.all([result1, result2, result3, result4, result5, result6])
 
         console.log('Result:', await promises)
         console.timeEnd('Execution took')

@@ -21,15 +21,14 @@ export default class Thread implements ThreadInterface {
     }
 
     async execute(data: TransferData, mode: Mode = Mode.SEQUENTIAL): Promise<void> {
-        if (this.#state !== State.IDLE) throw 'Thread is already running (Internal Controller Error)'
+
+        if (this.#state !== State.IDLE) throw `${mode} execution - Thread cannot be executed (Internal Controller Error)`
         this.#state = State.RUNNING
 
         this.#emit(EventType.PROGRESS, this)
         const responses: any[] = data.responses
 
         const tasks: Task[] = data.pool.pool
-
-        console.log(mode, data.pool.length, this.state)
 
         while (data.pool.length && this.#state === State.RUNNING) {
             // Get the next task & remove it from the pool
