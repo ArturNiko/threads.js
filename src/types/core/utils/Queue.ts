@@ -5,5 +5,5 @@ export default interface QueueInterface {
     last(): number | undefined
     splice(index: number, length?: number): void
     spliceByValue(value: number, length?: number): void
-    spectate(): number[]
+    view(): number[]
 }

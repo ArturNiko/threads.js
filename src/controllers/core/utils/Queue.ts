@@ -49,7 +49,7 @@ export default class Queue implements QueueInterface {
         this.#queue.splice(index, length)
     }
 
-    spectate(): number[] {
+    view(): number[] {
         return this.#queue.slice()
     }
 
