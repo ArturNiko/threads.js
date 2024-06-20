@@ -21,7 +21,6 @@ export default class Thread implements ThreadInterface {
     }
 
     async execute(data: TransferData, mode: Mode = Mode.SEQUENTIAL): Promise<void> {
-
         if (this.#state !== State.IDLE) throw `${mode} execution - Thread cannot be executed (Internal Controller Error)`
         this.#state = State.RUNNING
 

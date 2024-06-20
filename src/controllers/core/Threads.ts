@@ -46,6 +46,7 @@ export default class Threads implements ThreadsInterface {
         }
 
         await this.#loadAndRun(ThreadMode.SEQUENTIAL, transferData)
+        console.log('Responses:', transferData.responses)
 
         return transferData.responses[0]
     }
@@ -85,56 +86,18 @@ export default class Threads implements ThreadsInterface {
         }
     }
 
-    // Load idle threads first, then awaits for running threads to complete and loads them, if needed.
+
     async #loadAndRun(mode: ThreadMode, transferData: TransferData, amount: number = 1): Promise<any> {
-        return new Promise<void>(async (resolve) => {
-            const promises: Promise<void>[] = []
+        const promises: Promise<void>[] = []
 
-            const [idleThreads, runningThreads]: [Thread[], Thread[]] = [[], []]
-
-
-            this.#threads.forEach((thread: Thread): void => {
-                if (thread.state === ThreadState.IDLE) idleThreads.push(thread)
-                else if (thread.state === ThreadState.RUNNING) runningThreads.push(thread)
-            })
-
-            console.log('Running threads:', runningThreads.length, '\nIdle threads:', idleThreads.length)
-
-            idleThreads.splice(0, amount).forEach((thread: Thread): void => {
-                promises.push(thread.execute(transferData, mode))
-                --amount
-            })
-
-            if (amount === 0) {
-                await Promise.all(promises)
-                resolve()
-            }
-
-            const waitForIdleThreadPromises: Promise<void>[] = []
-            runningThreads.splice(0, amount).forEach((thread: Thread): void => {
-                waitForIdleThreadPromises.push(new Promise<void>((res): void => {
-                        thread.on(ThreadEventType.COMPLETE, (thread: Thread): void => {
-                            if (!transferData.pool.length) res()
-
-                            promises.push(thread.execute(transferData, mode))
-                            res()
-                        }, {once: true})
-                    })
-                )
-            })
-
-            await Promise.all(waitForIdleThreadPromises)
-            await Promise.all(promises)
-
-            resolve()
-        })
-    }
-
-    async #loadAndRun2(mode: ThreadMode, transferData: TransferData, amount: number = 1): Promise<any> {
-        for(let i = 0; i < amount; i++) {
+        while (transferData.pool.length && amount--) {
             const thread: Thread = await this.#getThread()
-            await thread.execute(transferData, mode)
+
+            if (thread.state !== ThreadState.IDLE) ++amount // Double-checking to prevent over assigning running threads
+            else if(transferData.pool.length) promises.push(thread.execute(transferData, mode))
         }
+
+        await Promise.all(promises)
     }
 
     async #getThread(): Promise<Thread> {
@@ -144,8 +107,7 @@ export default class Threads implements ThreadsInterface {
 
         return new Promise((resolve): void => {
             for (let i = 0; i < this.#threads.length; i++) {
-                const thread = this.#threads[i];
-                thread.on(ThreadEventType.COMPLETE, (thread: Thread): void => {
+                this.#threads[i].on(ThreadEventType.COMPLETE, (thread: Thread): void => {
                     resolve(thread)
                 }, {once: true})
 
