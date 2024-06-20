@@ -8,6 +8,7 @@ import {Mode as ThreadMode, State as ThreadState} from '../../types/core/Thread.
 import {Type as ThreadEventType} from '../../types/core/utils/Event.ts'
 
 import {HybridExecutor} from '../../types/core/Executor'
+import {mode} from "happy-dom/lib/PropertySymbol";
 
 
 export default class Threads implements ThreadsInterface {
@@ -95,21 +96,28 @@ export default class Threads implements ThreadsInterface {
 
 
     async #loadAndRun(mode: ThreadMode, transferData: TransferData, amount: number = 1): Promise<any> {
-        const index: number = this.#queues.pending.pushIncrement(this.#queues.loaded.last() ?? 0)
+        const index: number = this.#queues.pending.increment(this.#queues.loaded.last())
 
         const promises: Promise<void>[] = []
 
-        while (transferData.pool.length && amount--) {
-            console.log(mode)
+        console.warn(index, this.#queues.loaded.view())
+        while (transferData.pool.length && --amount) {
             const thread: Thread = await this.#getThread()
+            const isNext: boolean = (this.#queues.loaded.highest() ?? 0) + 1 === index
 
-            //const isNext: boolean = (this.#queues.loaded.last() ?? 0) + 1 === index
-            //if (thread.state !== ThreadState.IDLE && isNext) ++amount // Double-checking to prevent over assigning running threads
-            //else if (transferData.pool.length) promises.push(thread.execute(transferData, mode))
+            if(thread.state !== ThreadState.IDLE || !isNext) ++amount
+            else if (transferData.pool.length) {
+                promises.push(thread.execute(transferData, mode))
+            }
+
+
+            await new Promise(requestAnimationFrame)
         }
+
 
         this.#queues.pending.spliceByValue(index)
         this.#queues.loaded.push(index)
+
 
         await Promise.all(promises)
     }
@@ -118,7 +126,6 @@ export default class Threads implements ThreadsInterface {
         const thread: Thread | undefined = this.#threads.find((thread: Thread): boolean => thread.state === ThreadState.IDLE)
 
         if (thread) return thread
-
 
         return new Promise((resolve): void => {
             for (let i = 0; i < this.#threads.length; i++) {

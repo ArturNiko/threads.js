@@ -1,15 +1,23 @@
 import QueueInterface from '../../../types/core/utils/Queue.ts'
 
-export default class Queue implements QueueInterface {
+export default class Queue  {
     #queue: number[] = []
 
     get length(): number {
         return this.#queue.length
     }
 
-    push(value: number): void {
+    increment(value?: number): number {
+        value = (value ?? this.last() ?? 0) + 1
         this.#queue.push(value)
 
+        this.#sort()
+
+        return value
+    }
+
+    push(value: number): void {
+        this.#queue.push(value)
         this.#sort()
     }
 
@@ -17,25 +25,12 @@ export default class Queue implements QueueInterface {
         return this.#queue.at(index)
     }
 
-    pushIncrement(from?: number): number {
-        if (from) {
-            this.#queue.push(from)
-            return from
-        }
-
-        if (this.#queue.length === 0) {
-            this.#queue.push(0)
-            return 0
-        }
-
-        const value: number = this.at(- 1)! + 1
-        this.#queue.push(value)
-
-        return value
+    last(): number | undefined {
+        return this.#queue.at(-1)
     }
 
-    last(): number | undefined {
-        return this.at(-1)
+    highest(): number | undefined {
+        return this.#queue.at(-1)
     }
 
     splice(index: number, length: number = 1): void {
@@ -49,6 +44,7 @@ export default class Queue implements QueueInterface {
         this.#queue.splice(index, length)
     }
 
+    // Copy of the queue
     view(): number[] {
         return this.#queue.slice()
     }
