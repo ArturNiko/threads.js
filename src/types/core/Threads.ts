@@ -1,4 +1,5 @@
 import TaskPool from '../../controllers/partials/TaskPool'
+import Queue from '../../controllers/core/utils/Queue.ts'
 
 
 export default interface ThreadsInterface {
@@ -24,6 +25,11 @@ export interface Options {
     threads?: number
     throttle?: TransferData['throttle']
     step?: TransferData['step']
+}
+
+export interface Queues {
+    loaded: Queue
+    pending: Queue
 }
 
 

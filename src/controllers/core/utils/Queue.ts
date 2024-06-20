@@ -1,5 +1,6 @@
-export default class Queue {
+import QueueInterface from '../../../types/core/utils/Queue.ts'
 
+export default class Queue implements QueueInterface {
     #queue: number[] = []
 
     get length(): number {
@@ -33,10 +34,6 @@ export default class Queue {
         return value
     }
 
-    #sort(): void {
-        this.#queue.sort((a: number, b: number): number => a - b)
-    }
-
     last(): number | undefined {
         return this.at(-1)
     }
@@ -54,6 +51,10 @@ export default class Queue {
 
     spectate(): number[] {
         return this.#queue.slice()
+    }
+
+    #sort(): void {
+        this.#queue.sort((a: number, b: number): number => a - b)
     }
 
 }
