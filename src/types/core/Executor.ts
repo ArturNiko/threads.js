@@ -13,3 +13,7 @@ export enum Command {
 }
 
 export type HybridExecutor = (BrowserExecutor | NodeExecutor)
+
+export interface MessageData {
+    worker_callback_error?: string
+}

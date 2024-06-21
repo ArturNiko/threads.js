@@ -21,6 +21,10 @@ export default class Queue  {
         this.#sort()
     }
 
+    clear(): void {
+        this.#queue = []
+    }
+
     at(index: number): number | undefined {
         return this.#queue.at(index)
     }

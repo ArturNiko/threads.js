@@ -7,7 +7,9 @@ export default interface ThreadsInterface {
 
     executeParallel(taskPool: TaskPool, options?: Options): Promise<any[]|any>
 
-    set threadCount(maxThreadsCount: number)
+    terminate(): Promise<void>
+
+    reset(): Promise<void>
 
     get threadCount(): number
 }

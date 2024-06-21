@@ -24,14 +24,12 @@ export default class Threads implements ThreadsInterface {
     }
 
 
-    constructor(maxThreads: number = 2) {
-        this.#threadCount = maxThreads
+    constructor(threadCount: number = 2) {
+        this.#threadCount = Math.max(1, Math.min(threadCount, Environment.threads()))
     }
 
     async load(): Promise<Threads> {
         this.#executor = await Environment.executor()
-
-        this.threadCount = this.#threadCount
 
         this.#loaded = true
 
@@ -81,27 +79,30 @@ export default class Threads implements ThreadsInterface {
         return transferData.responses
     }
 
-    terminate(): void {
+    async terminate(): Promise<void> {
         this.#threads.forEach((thread: Thread): void => thread.terminate())
-    }
 
-    reset(): void {
-        this.terminate()
-        this.#threads = []
+        const promises: Promise<void>[] = []
 
-        for (let i = 0; i < this.#threadCount; i++) {
-            this.#threads.push(new Thread(this.#executor!))
+
+        for (let i = 0; i < this.#threads.length; i++) {
+            await this.#getThread()
         }
+
+        await Promise.all(promises)
     }
 
+    async reset(): Promise<void> {
+        await this.terminate()
+        this.#threads = []
+    }
 
     async #loadAndRun(mode: ThreadMode, transferData: TransferData, amount: number = 1): Promise<any> {
         const index: number = this.#queues.pending.increment(this.#queues.loaded.last())
 
         const promises: Promise<void>[] = []
 
-        console.warn(index, this.#queues.loaded.view())
-        while (transferData.pool.length && --amount) {
+        while (transferData.pool.length && amount--) {
             const thread: Thread = await this.#getThread()
             const isNext: boolean = (this.#queues.loaded.highest() ?? 0) + 1 === index
 
@@ -110,14 +111,17 @@ export default class Threads implements ThreadsInterface {
                 promises.push(thread.execute(transferData, mode))
             }
 
+            if (index === 4) {
+                console.warn(amount, transferData.pool.length)
+            }
 
             await new Promise(requestAnimationFrame)
         }
 
-
         this.#queues.pending.spliceByValue(index)
-        this.#queues.loaded.push(index)
 
+        if (!this.#queues.pending.length) this.#queues.loaded.clear()
+        else this.#queues.loaded.push(index)
 
         await Promise.all(promises)
     }
@@ -134,22 +138,9 @@ export default class Threads implements ThreadsInterface {
                 }, {once: true})
             }
         })
-
-    }
-
-    set threadCount(newThreadCount: number) {
-        this.#threadCount = Math.max(1, Math.min(newThreadCount, Environment.threads()))
-        this.reset()
     }
 
     get threadCount(): number {
         return this.#threads.length
-    }
-
-    get queues(): Object {
-        return {
-            loaded: this.#queues.loaded.view(),
-            pending: this.#queues.pending.view()
-        }
     }
 }
