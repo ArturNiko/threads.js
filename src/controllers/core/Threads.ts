@@ -3,19 +3,18 @@ import TaskPool from '../partials/TaskPool'
 import Environment from './utils/Environment.ts'
 import Queue from './utils/Queue.ts'
 
-import ThreadsInterface, {Options, Queues, TransferData} from '../../types/core/Threads'
+import ThreadsInterface, {Options, Queues, State, TransferData} from '../../types/core/Threads'
 import {Mode as ThreadMode, State as ThreadState} from '../../types/core/Thread.ts'
 import {Type as ThreadEventType} from '../../types/core/utils/Event.ts'
 
 import {HybridExecutor} from '../../types/core/Executor'
-import {mode} from "happy-dom/lib/PropertySymbol";
 
 
 export default class Threads implements ThreadsInterface {
-    #threadCount: number = 2
-    #loaded: boolean = false
+    readonly #threadCount: number = 2
+    #state: State = State.INITIALIZED
 
-    #threads: Thread[] = []
+    readonly #threads: Thread[] = []
     #executor: (new() => HybridExecutor) | null = null
 
     #queues: Queues = {
@@ -29,18 +28,17 @@ export default class Threads implements ThreadsInterface {
     }
 
     async load(): Promise<Threads> {
+        this.#state = State.LOADING
         this.#executor = await Environment.executor()
+        this.#state = State.LOADED
 
-        this.#loaded = true
+        await this.spawn()
 
         return this
     }
 
     async executeSequential(taskPool: TaskPool, options: Omit<Options, 'threads'> = {}): Promise<any> {
-        if (!this.#loaded) {
-            console.warn('Please run load() first, to avoid unexpected behavior. Loading now.')
-            await this.load()
-        }
+        if (!(await this.#checkState())) return
 
         const transferData: TransferData = {
             pool: taskPool,
@@ -56,10 +54,7 @@ export default class Threads implements ThreadsInterface {
     }
 
     async executeParallel(taskPool: TaskPool, options: Options = {}): Promise<any[] | undefined> {
-        if (!this.#loaded) {
-            console.warn('Please run load() first, to avoid unexpected behavior. Loading now.')
-            await this.load()
-        }
+        if (!(await this.#checkState())) return
 
         let threadsToSpawn: number = Math.min(options.threads ?? this.threadCount, this.threadCount)
         threadsToSpawn = Math.max(1, threadsToSpawn)
@@ -80,6 +75,8 @@ export default class Threads implements ThreadsInterface {
     }
 
     async terminate(): Promise<void> {
+        if(!this.#threads.length) return
+
         this.#threads.forEach((thread: Thread): void => thread.terminate())
 
         const promises: Promise<void>[] = []
@@ -90,31 +87,48 @@ export default class Threads implements ThreadsInterface {
         }
 
         await Promise.all(promises)
+        this.#state = State.TERMINATED
     }
 
-    async reset(): Promise<void> {
-        await this.terminate()
-        this.#threads = []
+    async spawn(): Promise<void> {
+        if (!(await this.#checkState())) return
+
+        if (this.#threads.length) {
+            await this.terminate()
+            this.#threads.length = 0
+        }
+
+        for (let i = 0; i < this.#threadCount; i++) {
+            this.#threads.push(new Thread(this.#executor!))
+        }
+    }
+
+    get threadCount(): number {
+        return this.#threads.length
     }
 
     async #loadAndRun(mode: ThreadMode, transferData: TransferData, amount: number = 1): Promise<any> {
+        if(this.#state === State.ERROR) return
+
         const index: number = this.#queues.pending.increment(this.#queues.loaded.last())
 
         const promises: Promise<void>[] = []
 
         while (transferData.pool.length && amount--) {
             const thread: Thread = await this.#getThread()
+
             const isNext: boolean = (this.#queues.loaded.highest() ?? 0) + 1 === index
 
             if(thread.state !== ThreadState.IDLE || !isNext) ++amount
             else if (transferData.pool.length) {
-                promises.push(thread.execute(transferData, mode))
+                promises.push(thread.execute(transferData, mode).catch((): void => {
+                    console.error('An error occurred. Please terminate and respawn the threads.')
+                    this.#state = State.ERROR
+                }))
             }
 
-            if (index === 4) {
-                console.warn(amount, transferData.pool.length)
-            }
-
+            console.log(index)
+            //if (index === 4) console.log(amount, transferData.pool.length, index)
             await new Promise(requestAnimationFrame)
         }
 
@@ -126,21 +140,45 @@ export default class Threads implements ThreadsInterface {
         await Promise.all(promises)
     }
 
-    async #getThread(): Promise<Thread> {
-        const thread: Thread | undefined = this.#threads.find((thread: Thread): boolean => thread.state === ThreadState.IDLE)
+    async #checkState(): Promise<boolean> {
+        switch (this.#state) {
+            case State.INITIALIZED:
+                await this.load()
+                console.info('Please run load() first, to avoid unexpected behavior. Loading now.')
+                return true
 
+            case State.LOADING:
+                console.trace('Loading in progress. Please wait.')
+                return false
+
+            case State.ERROR:
+                throw 'An error occurred. Please terminate and respawn the threads.'
+
+            case State.LOADED:
+                return true
+
+            case State.TERMINATED:
+                await this.spawn()
+                return true
+        }
+    }
+
+    async #getThread(): Promise<Thread> {
+        if (!this.#threads.length) throw 'No threads available'
+
+        const thread: Thread | undefined = this.#threads.find((thread: Thread): boolean => thread.state === ThreadState.IDLE)
         if (thread) return thread
 
         return new Promise((resolve): void => {
             for (let i = 0; i < this.#threads.length; i++) {
-                this.#threads[i].on(ThreadEventType.COMPLETE, (thread: Thread): void => {
+                this.#threads[i]?.on(ThreadEventType.COMPLETE, (thread: Thread): void => {
                     resolve(thread)
                 }, {once: true})
             }
         })
     }
 
-    get threadCount(): number {
-        return this.#threads.length
+    get state(): State {
+        return this.#state
     }
 }

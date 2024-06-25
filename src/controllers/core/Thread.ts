@@ -41,7 +41,6 @@ export default class Thread implements ThreadInterface {
             // If throttle is set, wait for its completion. If it fails, terminate the thread
             if (data.throttle) await this.#waitForThrottleSuccess(data.throttle).catch()
 
-            //@TODO: fix TS2367
             //@ts-ignore
             if(this.#state === State.INTERRUPTED) {
                 this.#emit(EventType.ERROR, this)
@@ -63,8 +62,8 @@ export default class Thread implements ThreadInterface {
             responses[task.index!] = response
 
             // Execute the step callback
-            const progress: number = responses.filter((response) => response !== undefined).length / data.poolSize
-            data.step?.(responses[task.index!], progress * 100)
+            const progress: number = responses.filter((response): boolean => response !== undefined).length / data.poolSize
+            data.step?.(responses[task.index!], progress)
         }
 
         this.#state = State.IDLE

@@ -24,6 +24,7 @@
     import Threads, {TaskPool} from './src/index.ts'
 
     const threads = new Threads(navigator.hardwareConcurrency)
+
     await threads.load()
 
     function test1(message) {
@@ -94,6 +95,7 @@
         })
 
         const result3 = threads.executeParallel(generateParTasks(), {
+                threads: 2,
                 step: () => {
                     setProgress((++currentStep / totalStep) * 100)
                     console.log('Execution Nr. 3')
@@ -111,7 +113,6 @@
             }
         )
 
-        /*
         const result5 = threads.executeSequential(generateSeqTasks(), {
             step: () => {
                 setProgress((++currentStep / totalStep) * 100)
@@ -120,6 +121,7 @@
             throttle: () => performance.memory.jsHeapSizeLimit - performance.memory.usedJSHeapSize > Math.pow(1024, 2)
         })
 
+        /*
         const result6 = threads.executeSequential(generateSeqTasks(), {
             step: () => {
                 setProgress((++currentStep / totalStep) * 100)
@@ -139,7 +141,7 @@
         */
 
 
-        const promises = Promise.all([result1, result2, result3, result4])
+        const promises = Promise.all([result1, result2, result3, result4, result5])
         // Test section end
 
         console.log('Result:', await promises)
