@@ -23,3 +23,8 @@ export enum Mode {
     SEQUENTIAL = 'sequential'
 }
 
+export enum EventType {
+    'PROGRESS' = 'progress',
+    'COMPLETE' = 'complete',
+    'ERROR' = 'error'
+}

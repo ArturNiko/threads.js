@@ -1,7 +1,12 @@
-import QueueInterface from '../../../types/core/utils/Queue.ts'
+import Event from './Event.ts'
+
+import QueueInterface, {EventType} from '../../../types/core/utils/Queue.ts'
+import {Options as EventOptions} from '../../../types/core/utils/Event.ts'
+
 
 export default class Queue  {
     #queue: number[] = []
+    #events: Event = new Event()
 
     get length(): number {
         return this.#queue.length
@@ -19,6 +24,8 @@ export default class Queue  {
     push(value: number): void {
         this.#queue.push(value)
         this.#sort()
+
+        this.#emit(EventType.PUSH, value)
     }
 
     clear(): void {
@@ -34,18 +41,22 @@ export default class Queue  {
     }
 
     highest(): number | undefined {
-        return this.#queue.at(-1)
+        if (!this.#queue.length) return undefined
+
+        return this.#queue.reduce((a: number, b: number): number => a > b ? a : b)
     }
 
-    splice(index: number, length: number = 1): void {
+    remove(index: number, length: number = 1): void {
         this.#queue.splice(index, length)
+
+        this.#emit(EventType.REMOVE, index)
     }
 
-    spliceByValue(value: number, length: number = 1): void {
+    removeByValue(value: number, length: number = 1): void {
         const index: number = this.#queue.indexOf(value)
         if (index === -1) return
 
-        this.#queue.splice(index, length)
+        this.remove(index, length)
     }
 
     // Copy of the queue
@@ -53,8 +64,15 @@ export default class Queue  {
         return this.#queue.slice()
     }
 
+    on(event: EventType, callback: (data: any) => void, options?: EventOptions): void {
+        this.#events.on(event, callback, options)
+    }
+
+    #emit(event: EventType, data: any): void {
+        this.#events.emit(event, data)
+    }
+
     #sort(): void {
         this.#queue.sort((a: number, b: number): number => a - b)
     }
-
 }

@@ -1,9 +1,9 @@
-import EventInterface, {Type, Entry, Options} from '../../../types/core/utils/Event.ts'
+import EventInterface, {Entry, Options} from '../../../types/core/utils/Event.ts'
 
 export default class Event implements EventInterface {
-    #events: Map<Type, Entry[]> = new Map()
+    #events: Map<string, Entry[]> = new Map()
 
-    on(event: Type, callback: (data: any) => void, options?: Options): void {
+    on(event: string, callback: (data: any) => void, options?: Options): void {
         if (!this.#events.has(event)) this.#events.set(event, [])
 
         this.#events.get(event)!.push({
@@ -12,7 +12,7 @@ export default class Event implements EventInterface {
         })
     }
 
-    emit(event: Type, data: any): void {
+    emit(event: string, data: any): void {
         if (!this.#events.has(event)) return
 
         this.#events.get(event)!.forEach((e: Entry, i: number): void => {
