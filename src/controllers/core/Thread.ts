@@ -26,7 +26,7 @@ export default class Thread implements ThreadInterface {
 
         this.#state = State.RUNNING
 
-        this.#emit(EventType.PROGRESS, this)
+        this.#events.emit(EventType.PROGRESS, this)
         const responses: any[] = data.responses
 
         const tasks: Task[] = data.pool.pool
@@ -43,7 +43,7 @@ export default class Thread implements ThreadInterface {
 
             //@ts-ignore
             if(this.#state === State.INTERRUPTED) {
-                this.#emit(EventType.ERROR, this)
+                this.#events.emit(EventType.ERROR, this)
 
                 break
             }
@@ -53,7 +53,7 @@ export default class Thread implements ThreadInterface {
 
             // Check if the response is an error and gracefully terminate the thread
             if (response?.error) {
-                this.#emit(EventType.ERROR, this)
+                this.#events.emit(EventType.ERROR, this)
 
                 break
             }
@@ -68,7 +68,7 @@ export default class Thread implements ThreadInterface {
 
         this.#state = State.IDLE
 
-        this.#emit(EventType.COMPLETE, this)
+        this.#events.emit(EventType.COMPLETE, this)
     }
 
     terminate(): void {
@@ -79,10 +79,6 @@ export default class Thread implements ThreadInterface {
 
     on(event: EventType, callback: (data: any) => void, options?: EventOptions): void {
         this.#events.on(event, callback, options)
-    }
-
-    #emit(event: EventType, data: any): void {
-        this.#events.emit(event, data)
     }
 
     async #waitForThrottleSuccess(throttle: ThrottleCallback): Promise<void> {

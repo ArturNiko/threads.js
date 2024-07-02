@@ -146,8 +146,7 @@ export default class Threads implements ThreadsInterface {
 
         return new Promise((resolve): void => {
             for (let i = 0; i < this.threadCount; i++) {
-                if(testIndex === 5) console.log('Thread state', this.#threads[i].state)
-                this.#threads[i]?.on(ThreadEventType.COMPLETE, (thread: Thread): void => {
+                this.#threads[i].on(ThreadEventType.COMPLETE, (thread: Thread): void => {
                     if(testIndex === 5) console.log('Thread completed')
                     resolve(thread)
                 }, {once: true})
@@ -196,5 +195,4 @@ export default class Threads implements ThreadsInterface {
             pending: this.#queues.pending.view()
         }
     }
-
 }
