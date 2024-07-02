@@ -1,9 +1,9 @@
 import Event from './utils/Event.ts'
 
-import {Type as EventType, Options as EventOptions} from '../../types/core/utils/Event.ts'
+import {Options as EventOptions} from '../../types/core/utils/Event.ts'
 
 import {ThrottleCallback, TransferData} from '../../types/core/Threads'
-import ThreadInterface, {Mode, State} from '../../types/core/Thread'
+import ThreadInterface, {Mode, State, EventType} from '../../types/core/Thread'
 import {HybridExecutor} from '../../types/core/Executor'
 import {Task} from '../../types/partials/TaskPool'
 

@@ -1,11 +1,6 @@
 export default interface EventInterface {
-    on(event: Type, callback: (data: any) => void, options?: Options): void
-    emit(event: Type, data: any): void
-}
-export enum Type {
-    'PROGRESS' = 'progress',
-    'COMPLETE' = 'complete',
-    'ERROR' = 'error'
+    on(event: string, callback: (data: any) => void, options?: Options): void
+    emit(event: string, data: any): void
 }
 
 export interface Entry {

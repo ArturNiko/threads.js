@@ -7,3 +7,8 @@ export default interface QueueInterface {
     spliceByValue(value: number, length?: number): void
     view(): number[]
 }
+
+export enum EventType {
+    PUSH = 'push',
+    REMOVE = 'remove'
+}
