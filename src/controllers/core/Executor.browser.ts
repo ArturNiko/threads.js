@@ -1,4 +1,5 @@
-import ExecutorInterface, {Command} from '../../types/core/Executor'
+import ExecutorInterface, {Command, MessageData} from '../../types/core/Executor'
+import {ModifyKey} from '../../types/helpers.ts'
 
 
 export default class BrowserExecutor implements ExecutorInterface {
@@ -36,7 +37,7 @@ export default class BrowserExecutor implements ExecutorInterface {
 
         this.#worker = new Worker(url)
 
-        this.#worker.onmessage = (message: MessageEvent): void => {
+        this.#worker.onmessage = (message: ModifyKey<MessageEvent, 'data', MessageData>): void => {
             return message.data?.worker_callback_error
                 ? this.#failedCallback(`Worker callback error occurred: ${message.data.worker_callback_error}. Check the task function for errors.`)
                 : this.#completedCallback(message.data)

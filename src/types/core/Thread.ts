@@ -4,7 +4,7 @@ import ExecutorInterface from './Executor'
 
 
 export default interface ThreadInterface {
-    execute(data: TransferData): Promise<any[]>
+    execute(data: TransferData): Promise<void>
 
     terminate: ExecutorInterface['terminate']
 
@@ -23,17 +23,8 @@ export enum Mode {
     SEQUENTIAL = 'sequential'
 }
 
-export enum Event {
+export enum EventType {
     'PROGRESS' = 'progress',
     'COMPLETE' = 'complete',
     'ERROR' = 'error'
-}
-
-export interface ThreadEvent {
-    callback: Function
-    options?: ThreadEventsOptions
-}
-
-export interface ThreadEventsOptions {
-    once?: boolean
 }
