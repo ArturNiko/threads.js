@@ -10,7 +10,7 @@ import {HybridExecutor} from '../../types/core/Executor'
 
 
 export default class Threads implements ThreadsInterface {
-    readonly #threadCount: number = 2
+    #threadCount: number = 2
     #state: State = State.INITIALIZED
 
     readonly #threads: Thread[] = []
@@ -22,8 +22,8 @@ export default class Threads implements ThreadsInterface {
     }
 
 
-    constructor(threadCount: number = 2) {
-        this.#threadCount = Math.max(1, Math.min(threadCount, Environment.threads()))
+    constructor(threads: number = 2) {
+        this.#threadCount = Math.max(1, Math.min(threads, Environment.threads()))
     }
 
     async load(): Promise<Threads> {
@@ -34,6 +34,24 @@ export default class Threads implements ThreadsInterface {
         await this.spawn()
 
         return this
+    }
+
+    async spawn(threads?: number): Promise<void> {
+        this.#threads.forEach((thread: Thread): void => thread.terminate())
+
+        const promises: Promise<Thread>[] = []
+
+        for (let i = 0; i < this.threadCount; i++) {
+            promises.push(this.#getThread())
+        }
+
+        await Promise.all(promises)
+
+        this.#threadCount = threads ? Math.max(1, Math.min(threads, Environment.threads())) : this.#threadCount
+
+        for (let i = 0; i < this.#threadCount; i++) {
+            this.#threads.push(new Thread(this.#executor!))
+        }
     }
 
     async executeSequential(taskPool: TaskPool, options: Omit<Options, 'threads'> = {}): Promise<any> {
@@ -73,42 +91,13 @@ export default class Threads implements ThreadsInterface {
         return transferData.responses
     }
 
-    async terminate(): Promise<void> {
-        if (!this.threadCount) return
-
-        this.#threads.forEach((thread: Thread): void => thread.terminate())
-
-        const promises: Promise<void>[] = []
-
-
-        for (let i = 0; i < this.threadCount; i++) {
-            await this.#getThread( )
-        }
-
-        await Promise.all(promises)
-        this.#state = State.TERMINATED
-    }
-
-    async spawn(): Promise<void> {
-        if (!(await this.#checkState())) return
-
-        if (this.threadCount) {
-            await this.terminate()
-            this.#threads.length = 0
-        }
-
-        for (let i = 0; i < this.#threadCount; i++) {
-            this.#threads.push(new Thread(this.#executor!))
-        }
-    }
-
     async #loadAndRun(mode: ThreadMode, transferData: TransferData, threadsToRun: number): Promise<any> {
         const index: number = await this.#waitInQueue()
-        console.log(index)
 
         const promises: Promise<void>[] = []
         while (transferData.pool.length && threadsToRun--) {
-            const thread: Thread = await this.#getThread(index)
+            const thread: Thread = await this.#getThread()
+            console.log(index)
 
             if (transferData.pool.length) {
                 promises.push(thread.execute(transferData, mode).catch((): void => {
@@ -127,29 +116,23 @@ export default class Threads implements ThreadsInterface {
 
     async #waitInQueue(): Promise<number> {
         const index: number = this.#queues.pending.increment(this.#queues.loaded.last())
-
         while ((this.#queues.loaded.highest() ?? 0) + 1 !== index) {
             await new Promise<void>((resolve): void => {
-                this.#queues.loaded.on(QueueEventType.PUSH, resolve)
+                this.#queues.loaded.on(QueueEventType.PUSH, resolve, {once: true})
             })
         }
 
         return index
     }
 
-    async #getThread(testIndex?: number): Promise<Thread> {
-        if (!this.threadCount) throw 'No threads available'
-        if(testIndex === 5) console.log(this.threadStates)
-
+    async #getThread(): Promise<Thread> {
         const thread: Thread | undefined = this.#threads.find((thread: Thread): boolean => thread.state === ThreadState.IDLE)
         if (thread) return thread
 
         return new Promise((resolve): void => {
             for (let i = 0; i < this.threadCount; i++) {
-                this.#threads[i].on(ThreadEventType.COMPLETE, (thread: Thread): void => {
-                    if(testIndex === 5) console.log('Thread completed')
-                    resolve(thread)
-                }, {once: true})
+                // Thread is automatically passed and resolved as parameter
+                this.#threads[i].on(ThreadEventType.COMPLETE, resolve, {once: true})
             }
         })
     }
@@ -170,10 +153,6 @@ export default class Threads implements ThreadsInterface {
 
             case State.LOADED:
                 return true
-
-            case State.TERMINATED:
-                await this.spawn()
-                return true
         }
     }
 
@@ -187,12 +166,5 @@ export default class Threads implements ThreadsInterface {
 
     get threadCount(): number {
         return this.#threads.length
-    }
-
-    get queueView(): any {
-        return {
-            loaded: this.#queues.loaded.view(),
-            pending: this.#queues.pending.view()
-        }
     }
 }

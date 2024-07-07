@@ -1,5 +1,6 @@
 import EventInterface, {Entry, Options} from '../../../types/core/utils/Event.ts'
 
+
 export default class Event implements EventInterface {
     #events: Map<string, Entry[]> = new Map()
 
@@ -15,11 +16,18 @@ export default class Event implements EventInterface {
     emit(event: string, data: any): void {
         if (!this.#events.has(event)) return
 
-        this.#events.get(event)!.forEach((e: Entry, i: number): void => {
+        const listeners: Entry[] = this.#events.get(event)!
+        const listenersToRemove: number[] = [];
+
+        listeners.forEach((e: Entry, i: number): void => {
             e.callback(data)
 
-            if (e.options?.once) this.#events.get(event)!.splice(i, 1)
+            if (e.options?.once) listenersToRemove.push(i)
         })
-    }
 
+        // Remove the listeners marked for deletion after iteration
+        for (let i = listenersToRemove.length - 1; i >= 0; i--) {
+            listeners.splice(listenersToRemove[i], 1)
+        }
+    }
 }

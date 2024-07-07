@@ -1,5 +1,7 @@
 import TaskPool from '../../controllers/partials/TaskPool'
-import Queue from '../../controllers/core/utils/Queue.ts'
+import Queue from '../../controllers/core/utils/Queue'
+
+import {State as ThreadState} from './Thread.ts'
 
 
 export default interface ThreadsInterface {
@@ -7,13 +9,13 @@ export default interface ThreadsInterface {
 
     executeParallel(taskPool: TaskPool, options?: Options): Promise<any[] | any>
 
-    terminate(): Promise<void>
+    spawn(threads?: number): Promise<void>
 
-    spawn(): Promise<void>
+    get state(): State
 
     get threadCount(): number
 
-    get state(): State
+    get threadStates(): ThreadState[]
 }
 
 
@@ -38,7 +40,6 @@ export interface Queues {
 
 export enum State {
     'INITIALIZED' = 'initialized',
-    'TERMINATED' = 'terminated',
     'LOADING' = 'loading',
     'ERROR' = 'error',
     'LOADED' = 'loaded'
