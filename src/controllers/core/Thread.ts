@@ -86,6 +86,7 @@ export default class Thread implements ThreadInterface {
             if (this.#state === State.INTERRUPTED) break
 
             try {
+                console.log(1)
                 if (await throttle()) break
             }
             catch (e) {
@@ -96,6 +97,8 @@ export default class Thread implements ThreadInterface {
 
             await new Promise(requestAnimationFrame)
         }
+
+
     }
 
     get state(): State {

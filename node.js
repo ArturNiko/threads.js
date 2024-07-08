@@ -16,6 +16,8 @@ function test1(message) {
 async function run() {
     const threads = new Threads(require('os').cpus().length)
 
+    await threads.load()
+
     const tasks = new TaskPool()
     for (let i = 0; i < 10; i++) {
         tasks.push({method: test1, message: {index: i, message: i}}, test1)

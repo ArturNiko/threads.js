@@ -27,7 +27,6 @@ export default class Threads implements ThreadsInterface {
     }
 
     async load(): Promise<Threads> {
-        this.#state = State.LOADING
         this.#executor = await Environment.executor()
         this.#state = State.LOADED
 
@@ -97,7 +96,6 @@ export default class Threads implements ThreadsInterface {
         const promises: Promise<void>[] = []
         while (transferData.pool.length && threadsToRun--) {
             const thread: Thread = await this.#getThread()
-            console.log(index)
 
             if (transferData.pool.length) {
                 promises.push(thread.execute(transferData, mode).catch((): void => {
@@ -140,16 +138,11 @@ export default class Threads implements ThreadsInterface {
     async #checkState(): Promise<boolean> {
         switch (this.#state) {
             case State.INITIALIZED:
-                await this.load()
-                console.info('Please run load() first, to avoid unexpected behavior. Loading now.')
+                console.info('Please run load() first.')
                 return true
 
-            case State.LOADING:
-                console.trace('Loading in progress. Please wait.')
-                return false
-
             case State.ERROR:
-                throw 'An error occurred. Please terminate and respawn the threads.'
+                throw 'An error occurred. Please respawn the threads.'
 
             case State.LOADED:
                 return true

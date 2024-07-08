@@ -40,7 +40,6 @@ export interface Queues {
 
 export enum State {
     'INITIALIZED' = 'initialized',
-    'LOADING' = 'loading',
     'ERROR' = 'error',
     'LOADED' = 'loaded'
 }
