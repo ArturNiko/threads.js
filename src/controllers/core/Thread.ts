@@ -1,4 +1,5 @@
 import Event from './utils/Event.ts'
+import Environment from './utils/Environment.ts'
 
 import {Options as EventOptions} from '../../types/core/utils/Event.ts'
 
@@ -86,7 +87,6 @@ export default class Thread implements ThreadInterface {
             if (this.#state === State.INTERRUPTED) break
 
             try {
-                console.log(1)
                 if (await throttle()) break
             }
             catch (e) {
@@ -95,10 +95,8 @@ export default class Thread implements ThreadInterface {
                 throw `Throttle error: ${e}`
             }
 
-            await new Promise(requestAnimationFrame)
+            await Environment.requestAnimationFrame()
         }
-
-
     }
 
     get state(): State {

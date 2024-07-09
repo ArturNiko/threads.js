@@ -20,4 +20,15 @@ export default class Environment {
             ? await import('../Executor.node.ts').then((module) => module.default) as typeof NodeExecutor
             : await import('../Executor.browser.ts').then((module) => module.default) as typeof BrowserExecutor
     }
+
+    static async requestAnimationFrame(): Promise<void> {
+        return new Promise<void>(resolve => {
+            if (typeof requestAnimationFrame !== 'undefined') {
+                requestAnimationFrame(() => resolve())
+            } else {
+                // Node.js environment
+                setTimeout(resolve, 16.666)
+            }
+        })
+    }
 }

@@ -4,13 +4,9 @@ import QueueInterface, {EventType} from '../../../types/core/utils/Queue.ts'
 import {Options as EventOptions} from '../../../types/core/utils/Event.ts'
 
 
-export default class Queue  {
+export default class Queue implements QueueInterface {
     #queue: number[] = []
     #events: Event = new Event()
-
-    get length(): number {
-        return this.#queue.length
-    }
 
     increment(value?: number): number {
         value = (value ?? this.last() ?? 0) + 1
@@ -74,5 +70,9 @@ export default class Queue  {
 
     #sort(): void {
         this.#queue.sort((a: number, b: number): number => a - b)
+    }
+
+    get length(): number {
+        return this.#queue.length
     }
 }
