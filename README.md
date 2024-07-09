@@ -45,12 +45,12 @@ import Threads from '@a4turp/threads.js'
 // Or
 const Threads = require('@a4turp/threads.js').default
 
+const threads = new Threads()
+
 // Maximum number of threads is calculated as navigator.hardwareConcurrency - 1.
 // Set the Maximum number of threads.
-const threads = new Threads(12)
+await threads.spawn(10)
 
-// Maximum number of threads can also be set after initialization.
-threads.maxThreadCount = 4
 ```
 
 
@@ -176,7 +176,7 @@ await threads.executeSequential(tasks)
 ```typescript
 /**
  * @description             Terminate the threads.
- * @note                    Running threads will be terminated gracefully, finished tasks will be outputted.
+ 
  */
 threads.terminate()
 ```
@@ -184,8 +184,9 @@ threads.terminate()
 ```typescript
 /**
  * @description             Terminate and reset the threads.
+ * @note                    If instance was already spawned, running threads will be terminated gracefully, finished tasks will be outputted.
  */
-threads.reset()
+threads.spawn()
 ```
 
 
