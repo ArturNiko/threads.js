@@ -1,4 +1,4 @@
-import TaskPoolInterface, {Task, TaskEntry} from '../../types/partials/TaskPool'
+import TaskPoolInterface, {Task, TaskEntry} from '../../types/partials/TaskPool.ts'
 
 export default class TaskPool implements TaskPoolInterface {
     #pool: Task[] = []

@@ -1,4 +1,4 @@
-import ExecutorInterface, {Command, MessageData} from '../../types/core/Executor'
+import ExecutorInterface, {Command, MessageData} from '../../types/core/Executor.ts'
 import {ModifyKey} from '../../types/helpers.ts'
 
 

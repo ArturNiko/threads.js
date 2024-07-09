@@ -9,7 +9,7 @@ export default class Queue implements QueueInterface {
     #events: Event = new Event()
 
     increment(value?: number): number {
-        value = (value ?? this.last() ?? 0) + 1
+        value = (value ?? this.last ?? 0) + 1
         this.#queue.push(value)
 
         this.#sort()
@@ -32,9 +32,6 @@ export default class Queue implements QueueInterface {
         return this.#queue.at(index)
     }
 
-    last(): number | undefined {
-        return this.#queue.at(-1)
-    }
 
     highest(): number | undefined {
         if (!this.#queue.length) return undefined
@@ -56,9 +53,6 @@ export default class Queue implements QueueInterface {
     }
 
     // Copy of the queue
-    view(): number[] {
-        return this.#queue.slice()
-    }
 
     on(event: EventType, callback: (data: any) => void, options?: EventOptions): void {
         this.#events.on(event, callback, options)
@@ -72,7 +66,15 @@ export default class Queue implements QueueInterface {
         this.#queue.sort((a: number, b: number): number => a - b)
     }
 
+    get last(): number | undefined {
+        return this.#queue.at(-1)
+    }
+
     get length(): number {
         return this.#queue.length
+    }
+
+    get view(): number[] {
+        return this.#queue.slice()
     }
 }

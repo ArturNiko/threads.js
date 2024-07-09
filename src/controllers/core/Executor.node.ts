@@ -3,7 +3,7 @@ import {writeFileSync, unlinkSync, existsSync} from 'fs'
 import {tmpdir} from 'os'
 import {join} from 'path'
 
-import ExecutorInterface, {Command} from '../../types/core/Executor'
+import ExecutorInterface, {Command} from '../../types/core/Executor.ts'
 
 
 export default class NodeExecutor implements ExecutorInterface {

@@ -1,4 +1,4 @@
-import {PartialBy} from '../helpers'
+import {PartialBy} from '../helpers.ts'
 
 export default interface TaskPoolInterface {
     push(...tasks: (Task | Function)[]): this

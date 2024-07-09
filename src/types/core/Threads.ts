@@ -1,15 +1,15 @@
-import TaskPool from '../../controllers/partials/TaskPool'
-import Queue from '../../controllers/core/utils/Queue'
+import TaskPool from '../../controllers/partials/TaskPool.ts'
+import Queue from '../../controllers/core/utils/Queue.ts'
 
 import {State as ThreadState} from './Thread.ts'
 
 
 export default interface ThreadsInterface {
+    spawn(threads?: number): Promise<void>
+
     executeSequential(taskPool: TaskPool, options?: Options): Promise<any[]>
 
     executeParallel(taskPool: TaskPool, options?: Options): Promise<any[] | any>
-
-    spawn(threads?: number): Promise<void>
 
     get state(): State
 
@@ -41,7 +41,7 @@ export interface Queues {
 export enum State {
     'INITIALIZED' = 'initialized',
     'ERROR' = 'error',
-    'LOADED' = 'loaded'
+    'READY' = 'ready'
 }
 
 export type StepCallback = (message: any, progress: number) => void

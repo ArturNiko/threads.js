@@ -1,12 +1,12 @@
-import Thread from './Thread'
-import TaskPool from '../partials/TaskPool'
+import Thread from './Thread.ts'
+import TaskPool from '../partials/TaskPool.ts'
 import Environment from './utils/Environment.ts'
 import Queue from './utils/Queue.ts'
 
-import ThreadsInterface, {Options, Queues, State, TransferData} from '../../types/core/Threads'
+import ThreadsInterface, {Options, Queues, State, TransferData} from '../../types/core/Threads.ts'
 import {Mode as ThreadMode, State as ThreadState, EventType as ThreadEventType} from '../../types/core/Thread.ts'
 import {EventType as QueueEventType} from '../../types/core/utils/Queue.ts'
-import {HybridExecutor} from '../../types/core/Executor'
+import {HybridExecutor} from '../../types/core/Executor.ts'
 
 
 export default class Threads implements ThreadsInterface {
@@ -22,20 +22,10 @@ export default class Threads implements ThreadsInterface {
     }
 
 
-    constructor(threads: number = 2) {
-        this.#threadCount = Math.max(1, Math.min(threads, Environment.threads()))
-    }
+    async spawn(threads: number = 2): Promise<void> {
 
-    async load(): Promise<Threads> {
-        this.#executor = await Environment.executor()
-        this.#state = State.LOADED
+        await this.#load()
 
-        await this.spawn()
-
-        return this
-    }
-
-    async spawn(threads?: number): Promise<void> {
         this.#threads.forEach((thread: Thread): void => thread.terminate())
 
         const promises: Promise<Thread>[] = []
@@ -90,6 +80,12 @@ export default class Threads implements ThreadsInterface {
         return transferData.responses
     }
 
+    async #load(): Promise<void> {
+        this.#state = State.INITIALIZED
+        this.#executor = await Environment.executor()
+        this.#state = State.READY
+    }
+
     async #loadAndRun(mode: ThreadMode, transferData: TransferData, threadsToRun: number): Promise<any> {
         const index: number = await this.#waitInQueue()
 
@@ -113,7 +109,7 @@ export default class Threads implements ThreadsInterface {
     }
 
     async #waitInQueue(): Promise<number> {
-        const index: number = this.#queues.pending.increment(this.#queues.loaded.last())
+        const index: number = this.#queues.pending.increment(this.#queues.loaded.last)
         while ((this.#queues.loaded.highest() ?? 0) + 1 !== index) {
             await new Promise<void>((resolve): void => {
                 this.#queues.loaded.on(QueueEventType.PUSH, resolve, {once: true})
@@ -144,7 +140,7 @@ export default class Threads implements ThreadsInterface {
             case State.ERROR:
                 throw 'An error occurred. Please respawn the threads.'
 
-            case State.LOADED:
+            case State.READY:
                 return true
         }
     }

@@ -1,5 +1,5 @@
-import BrowserExecutor from '../../controllers/core/Executor.browser'
-import NodeExecutor from '../../controllers/core/Executor.node'
+import BrowserExecutor from '../../controllers/core/Executor.browser.ts'
+import NodeExecutor from '../../controllers/core/Executor.node.ts'
 
 export default interface ExecutorInterface  {
     run(task: Function, value?: any): Promise<any>

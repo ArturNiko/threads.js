@@ -1,6 +1,6 @@
-import {TransferData} from './Threads'
+import {TransferData} from './Threads.ts'
 
-import ExecutorInterface from './Executor'
+import ExecutorInterface from './Executor.ts'
 
 
 export default interface ThreadInterface {
