@@ -4,71 +4,8 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Vite App</title>
+    <link rel="stylesheet" href="./index.css"/>
     <style>
-        body {
-            color: white;
-            margin: 0;
-            padding: 0;
-            font-family: sans-serif;
-            background-color: black;
-        }
-
-        #progress {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 5px;
-            width: 0;
-            background: #0f0;
-            transition: width .2s ease-in-out;
-            box-shadow: 0 0 10px #0f0;
-        }
-
-        #progress.done {
-            opacity: 0;
-            transition: opacity 1s ease-in-out;
-        }
-
-        main {
-            text-align: center;
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-        }
-
-        #run {
-            padding: 10px 20px;
-            font-size: 1rem;
-            font-weight: bolder;
-            font-family: sans-serif;
-            border: 1px solid #fff;
-            background: transparent;
-            color: #fff;
-            cursor: pointer;
-            transition: background .2s ease-in-out;
-            box-shadow: 0 0 0 white;
-        }
-
-        #run:hover {
-            background: #fff;
-            color: #000;
-        }
-
-        #run.running {
-            background: #fff;
-            color: #000;
-            pointer-events: none;
-        }
-
-        #run.done {
-            color: #000;
-            background: lime;
-            border-color: lime;
-            box-shadow: 0 0 10px lime;
-            pointer-events: none;
-        }
-
 
     </style>
 </head>
@@ -84,9 +21,11 @@
 </main>
 
 <script type="module">
-    import Threads, {TaskPool} from './src/index.ts'
+    import Threads, {TaskPool} from './dist/index.mjs'
 
     const threads = new Threads(navigator.hardwareConcurrency)
+
+    await threads.load()
 
     function test1(message) {
         let counter = message?.counter ?? 0
@@ -98,15 +37,34 @@
         return {index: message?.index ?? 'None', counter}
     }
 
-    const tasks1 = new TaskPool()
-    for (let i = 0; i < 10; i++) {
-        tasks1.push({method: test1, message: {index: i, message: i}}, test1)
-    }
-
-    const tasks2 = new TaskPool().push({method: test2, message: 1}, test2, {method: test2, message: 10}, test2, test2)
-
     function test2(message) {
         return message + 1
+    }
+
+    function generateParTasks() {
+        const tasks = new TaskPool()
+        for (let i = 0; i < 10; i++) {
+            tasks.push({method: test1, message: {index: i, message: i}}, test1)
+        }
+        return tasks
+    }
+
+    function generateSeqTasks() {
+        return new TaskPool().push(
+            {method: test2, message: 1},
+            test2,
+            {method: test2, message: 10},
+            test2,
+            test2)
+    }
+
+    function generateParTasks2() {
+        return new TaskPool().push(
+            {method: test2, message: 1},
+            {method: test2, message: 2},
+            {method: test2, message: 10},
+            {method: test2, message: 11},
+            {method: test2, message: 13})
     }
 
     const button = document.querySelector('#run')
@@ -116,23 +74,72 @@
 
         console.time('Execution took')
 
-        const result1 = threads.executeParallel(tasks1, {
-                step: (message, progress) => {
-                    console.log(message)
-                    document.querySelector('#progress').style.width = (progress) + '%'
+        const totalStep = (4 * 5) + (3 * 20)
+        let currentStep = 0
+
+        // Test section
+        const result1 = threads.executeParallel(generateParTasks2(), {
+            step: () => {
+                setProgress((++currentStep / totalStep) * 100)
+                console.log('Execution Nr. 1')
+            },
+            throttle: () => performance.memory.jsHeapSizeLimit - performance.memory.usedJSHeapSize > Math.pow(1024, 2)
+        })
+
+        const result2 = threads.executeSequential(generateSeqTasks(), {
+            step: () => {
+                setProgress((++currentStep / totalStep) * 100)
+                console.log('Execution Nr. 2')
+            },
+            throttle: () => performance.memory.jsHeapSizeLimit - performance.memory.usedJSHeapSize > Math.pow(1024, 2)
+        })
+
+        const result3 = threads.executeParallel(generateParTasks(), {
+                threads: 2,
+                step: () => {
+                    setProgress((++currentStep / totalStep) * 100)
+                    console.log('Execution Nr. 3')
                 },
                 throttle: () => performance.memory.jsHeapSizeLimit - performance.memory.usedJSHeapSize > Math.pow(1024, 2)
             }
         )
 
+        const result4 = threads.executeParallel(generateParTasks(), {
+                step: () => {
+                    setProgress((++currentStep / totalStep) * 100)
+                    console.log('Execution Nr. 4')
+                },
+                throttle: () => performance.memory.jsHeapSizeLimit - performance.memory.usedJSHeapSize > Math.pow(1024, 2)
+            }
+        )
 
-        const result2 = threads.executeSequential(tasks2, {
-            step: (message) => console.log(message),
+        const result5 = threads.executeSequential(generateSeqTasks(), {
+            step: () => {
+                setProgress((++currentStep / totalStep) * 100)
+                console.log('Execution Nr. 5')
+            },
             throttle: () => performance.memory.jsHeapSizeLimit - performance.memory.usedJSHeapSize > Math.pow(1024, 2)
         })
 
+        const result6 = threads.executeSequential(generateSeqTasks(), {
+            step: () => {
+                setProgress((++currentStep / totalStep) * 100)
+                console.log('Execution Nr. 6')
+            },
+            throttle: () => performance.memory.jsHeapSizeLimit - performance.memory.usedJSHeapSize > Math.pow(1024, 2)
+        })
 
-        const promises = Promise.all([result1, result2])
+        const result7 = threads.executeParallel(generateParTasks(), {
+                step: () => {
+                    setProgress((++currentStep / totalStep) * 100)
+                    console.log('Execution Nr. 7')
+                },
+                throttle: () => performance.memory.jsHeapSizeLimit - performance.memory.usedJSHeapSize > Math.pow(1024, 2)
+            }
+        )
+
+        const promises = Promise.all([result1, result2, result3, result4, result5, result6, result7])
+        // Test section end
 
         console.log('Result:', await promises)
         console.timeEnd('Execution took')
@@ -141,6 +148,9 @@
         button.innerText = 'Done'
     }, {once: true})
 
+    function setProgress(progress) {
+        document.querySelector('#progress').style.width = progress + '%'
+    }
 
     window.threads = threads
 </script>
