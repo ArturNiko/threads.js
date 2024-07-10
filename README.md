@@ -14,9 +14,9 @@
 - [**Running**](#running)
     - [**Preparation**](#Preparation)
     - [**Execution**](#Execution)
-    - [**Note**](#note)
-- [**API**](#api)
-- 
+    - [**Note**](#Note)
+- [**API**](#API)
+- [**Deprecated**](#Deprecated) 
 
 ## Important ⚠️
 
@@ -108,28 +108,13 @@ interface Options {
 }
 
 
-/**
- * @param                   tasks: TaskPool, options?: Options
- * @return                  Promise<any[]|void>
- * @description             Executes passed tasks on multiple threads concurrently.
- * @note                    The execution order is not guaranteed, but the results are returned in the order of the tasks.
- */
 await threads.executeParallel(tasks, {
-    //Options
     threads: 4,
     throttle: () => memoryUsage < 1000000, // Example of throttling function
     step: (response, progress) => console.log(progress)
-})
+} as Options)
 
-/**
- * @param                   tasks: TaskPool, options?: Options
- * @return                  Promise<any>
- * @description             Executes passed tasks on 1 thread sequentially.
- * @notes                   - The message is passed from the previous task if it is not defined.
- *                          - The execution order is guaranteed.
- *                          - Last task's response is returned.
- */
-await threads.executeSequential(tasks)
+await threads.executeSequential(tasks, {} as Options)
 ```
 
 
@@ -139,18 +124,14 @@ await threads.executeSequential(tasks)
 - Sequential execution runs on 1 thread and is slower than parallel execution.
 
 
-
 ## API
 
-### Methods
-Here is the list of available methods with their types and descriptions:
-
-#### Threads
+### Threads
 
 ```typescript
 
 /**
- *  @param                   tasks: TaskPool, options?: Options
+ *  @param                   (TaskPool, Options?)
  *  @return                  Promise<any[]|void>
  *  @description             Executes passed tasks on multiple threads concurrently.
  */
@@ -161,70 +142,54 @@ await threads.executeParallel(tasks, <Options>{
 })
 ```
 
-
 ```typescript
 /**
- *  @param                   tasks: TaskPool, options?: Options
+ *  @param                   (TaskPool, Options?)
  *  @return                  Promise<any[]|void>
  *  @description             Executes passed tasks on 1 thread sequentially.
  *  @note                    As you saw earlier some tasks may have not any message. In sequential execution,
  *                           the message is passed from the previous task if it is not defined.
  */
-await threads.executeSequential(tasks)
+await threads.executeSequential(tasks, <Options>{})
 ```
 
 ```typescript
 /**
- * @description             Terminate the threads.
- 
- */
-threads.terminate()
-```
-
-```typescript
-/**
+ * @param                   number Number of threads to spawn, with minimum and maximum limitations.
  * @description             Terminate and reset the threads.
  * @note                    If instance was already spawned, running threads will be terminated gracefully, finished tasks will be outputted.
  */
-threads.spawn()
+threads.spawn(number)
 ```
-
 
 ```typescript
 /**
- *  @param                   tasks: TaskPool, options?: Options
- *  @return                  Promise<any[]|void>
- *  @description             Executes passed tasks on 1 thread sequentially.
- *  @note                    As you saw earlier some tasks may have not any message. In sequential execution,
- *                           the message is passed from the previous task if it is not defined.
+ * @return                  State
+ * @description             Returns the state of the Threads instance.
  */
-await threads.executeSequential(tasks)
+
+threads.state
 ```
 
 ```typescript
-
 /**
  * @return                  number
  * @description             Returns the maximum number of threads.
  */
 
-threads.threadCount = 10
+threads.threadCount
 ```
-
-
-#### TaskPool
 
 ```typescript
 /**
- * @param                   index: number, ...task (Task|Function)[]
- * @return                  this
- * @description             Insert tasks at a specific index
- * @note                    If a task is a function, it will be converted to {method: Function, message: undefined}.
- *                          Length of replaced tasks is determined by the number of passed tasks.
+ * @return                  ThreadState[]
+ * @description             Returns the state of all internal threads.
  */
-tasks.insert(2, <Task>{method: square, message: 30}, square)
-     .insert(0, {method: square, message: 40})
+
+threads.threadStates
 ```
+
+### TaskPool
 
 ```typescript
 /**
@@ -240,6 +205,18 @@ tasks.push({method: square, message: 20}, square, {method: square, message: 0})
 
 ```typescript
 /**
+ * @param                   index: number, ...task (Task|Function)[]
+ * @return                  this
+ * @description             Insert tasks at a specific index
+ * @note                    If a task is a function, it will be converted to {method: Function, message: undefined}.
+ *                          Length of replaced tasks is determined by the number of passed tasks.
+ */
+tasks.insert(2, <Task>{method: square, message: 30}, square)
+     .insert(0, {method: square, message: 40})
+```
+
+```typescript
+/**
  *  @param                   index: number, ...task (Task|Function)[]
  *  @return                  this
  *  @description             Replace tasks from a specific index.
@@ -248,7 +225,6 @@ tasks.push({method: square, message: 20}, square, {method: square, message: 0})
 
 tasks.replace(2, {method: square, message: 30})
 ```
-
 
 ```typescript
 /**
@@ -267,7 +243,6 @@ tasks.grab(1, 3)
  */
 tasks.pop()
 ```
-
 
 ```typescript
 /**
@@ -317,6 +292,7 @@ tasks.length
 
 ## Deprecated
 
-- `execute` method is deprecated. Use `executeParallel` or `executeSequential` instead.
-- `dispose` method is deprecated. Threads are getting terminated gracefully after the execution is finished.
-- `ResponseType` execution option is deprecated.
+- `reset()` method is deprecated, use `spawn()` instead.
+- `terminate()` method is deprecated.
+- `maxThreadCount` getter is deprecated, use `threadCount` instead.
+- `maxThreadCount` setter is deprecated, use `spawn(number)` instead.

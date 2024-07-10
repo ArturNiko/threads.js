@@ -23,9 +23,11 @@
 <script type="module">
     import Threads, {TaskPool} from './dist/index.mjs'
 
-    const threads = new Threads(navigator.hardwareConcurrency)
+    const threads = new Threads()
 
-    await threads.load()
+    await threads.spawn(navigator.hardwareConcurrency)
+
+    console.log(threads)
 
     function test1(message) {
         let counter = message?.counter ?? 0

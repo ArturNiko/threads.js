@@ -18,6 +18,8 @@ export default interface TaskPoolInterface {
     clear(): this
 
     get pool(): Task[]
+
+    get length(): number
 }
 
 

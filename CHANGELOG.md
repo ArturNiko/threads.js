@@ -57,12 +57,12 @@
 
 ### Version 1.6.8 → 1.7.0
 
-### Date: 18. Jun 2024
+### Date: 10. Jul 2024
 
 
 | Type      |                 Description                 | 
 |:----------|:-------------------------------------------:|
 | Feature ✨ |             Smart thread loader             |
 | Fixes 🐞  |      Fixed internal error occurrences       |
-| API 🛠    |  Additional methods are available via API   |
+| API 🛠    | API modifications (Check the documentation) |
 | Dev 🛠    | Some performance improvements (Main thread) | 
