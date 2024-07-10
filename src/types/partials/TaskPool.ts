@@ -1,4 +1,4 @@
-import {PartialBy} from '../helpers'
+import {PartialBy} from '../helpers.ts'
 
 export default interface TaskPoolInterface {
     push(...tasks: (Task | Function)[]): this
@@ -18,6 +18,8 @@ export default interface TaskPoolInterface {
     clear(): this
 
     get pool(): Task[]
+
+    get length(): number
 }
 
 

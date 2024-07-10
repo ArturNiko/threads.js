@@ -1,5 +1,5 @@
-import Threads from './controllers/core/Threads'
-import TaskPool from './controllers/partials/TaskPool'
+import Threads from './controllers/core/Threads.ts'
+import TaskPool from './controllers/partials/TaskPool.ts'
 
 export default Threads
 export {TaskPool}

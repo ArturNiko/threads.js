@@ -1,108 +1,159 @@
-import ThreadsInterface, {Options, TransferData} from '../../types/core/Threads'
-import {Mode as ThreadMode} from '../../types/core/Thread'
-import {HybridExecutor} from '../../types/core/Executor'
+import Thread from './Thread.ts'
+import TaskPool from '../partials/TaskPool.ts'
+import Environment from './utils/Environment.ts'
+import Queue from './utils/Queue.ts'
 
-import Thread from './Thread'
-import TaskPool from '../partials/TaskPool'
-import Environment from '../partials/Environment'
+import ThreadsInterface, {Options, Queues, State, TransferData} from '../../types/core/Threads.ts'
+import {Mode as ThreadMode, State as ThreadState, EventType as ThreadEventType} from '../../types/core/Thread.ts'
+import {EventType as QueueEventType} from '../../types/core/utils/Queue.ts'
+import {HybridExecutor} from '../../types/core/Executor.ts'
 
 
 export default class Threads implements ThreadsInterface {
-    #maxThreadCount: number = 2
-    #loaded: boolean = false
-    #threads: Thread[] = []
+    #threadCount: number = 2
+    #state: State = State.INITIALIZED
+
+    readonly #threads: Thread[] = []
     #executor: (new() => HybridExecutor) | null = null
 
-
-    constructor(maxThreads: number = 2) {
-        this.maxThreadCount = maxThreads
-        this.#load().then(() => this.#loaded = true)
+    #queues: Queues = {
+        loaded: new Queue(),
+        pending: new Queue()
     }
 
-    async executeSequential(taskPool: TaskPool, options: Omit<Options, 'threads'> = {}): Promise<any[]> {
-        await this.#await(() => this.#loaded)
 
-        await this.#checkAvailableThreadSlots()
+    async spawn(threads: number = 2): Promise<void> {
 
-        const transferData: TransferData = {
-            pool: taskPool,
-            poolSize: taskPool.pool.length,
-            step: options.step,
-            throttle: options.throttle
+        await this.#load()
+
+        this.#threads.forEach((thread: Thread): void => thread.terminate())
+
+        const promises: Promise<Thread>[] = []
+
+        for (let i = 0; i < this.threadCount; i++) {
+            promises.push(this.#getThread())
         }
 
-        const thread: Thread = new Thread(this.#executor!, ThreadMode.SEQUENTIAL)
-        this.#threads.push(thread)
+        await Promise.all(promises)
 
-        const result: any[] = await thread.execute(transferData)
+        this.#threadCount = threads ? Math.max(1, Math.min(threads, Environment.threads())) : this.#threadCount
 
-        taskPool.clear()
-        this.#threads = []
-
-        return result[0]
+        for (let i = 0; i < this.#threadCount; i++) {
+            this.#threads.push(new Thread(this.#executor!))
+        }
     }
 
-    async executeParallel(taskPool: TaskPool, options: Options = {}): Promise<any[] | any> {
-        await this.#await(() => this.#loaded)
-
-        const defaultSlots: number = Math.max(1, this.#maxThreadCount - this.#threads.length)
-        const threadsToSpawn: number = Math.min(Math.max(1, Math.min(options.threads ?? defaultSlots, this.maxThreadCount)), taskPool.pool.length)
-        await this.#checkAvailableThreadSlots(threadsToSpawn)
+    async executeSequential(taskPool: TaskPool, options: Omit<Options, 'threads'> = {}): Promise<any> {
+        if (!(await this.#checkState())) return
 
         const transferData: TransferData = {
             pool: taskPool,
-            poolSize: taskPool.pool.length,
+            poolSize: taskPool.length,
+            step: options.step,
+            throttle: options.throttle,
+            responses: []
+        }
+
+        await this.#loadAndRun(ThreadMode.SEQUENTIAL, transferData, 1)
+
+        return transferData.responses
+    }
+
+    async executeParallel(taskPool: TaskPool, options: Options = {}): Promise<any[] | undefined> {
+        if (!(await this.#checkState())) return
+
+        let threadsToSpawn: number = Math.min(options.threads ?? this.threadCount, this.threadCount)
+        threadsToSpawn = Math.max(1, threadsToSpawn)
+        threadsToSpawn = Math.min(threadsToSpawn, taskPool.pool.length)
+
+        // References of this object are passed to the threads, so it's synchronized across them
+        const transferData: TransferData = {
+            pool: taskPool,
+            poolSize: taskPool.length,
             responses: [],
             step: options.step,
             throttle: options.throttle
         }
 
-        const promises: Promise<any>[] = []
-        for (let i = 0; i < threadsToSpawn; i++) {
-            const thread: Thread = new Thread(this.#executor!, ThreadMode.PARALLEL)
-            this.#threads.push(thread)
-
-            promises.push(thread.execute(transferData))
-        }
-
-        await Promise.all(promises)
-
-        taskPool.clear()
-        this.#threads = []
+        await this.#loadAndRun(ThreadMode.PARALLEL, transferData, threadsToSpawn)
 
         return transferData.responses
     }
 
-    async #checkAvailableThreadSlots(minThreadCount: number = 1): Promise<void> {
-        if (this.#threads.length > this.#maxThreadCount) {
-            await this.#await(() => this.#maxThreadCount - this.#threads.length >= minThreadCount)
-        }
+    async #load(): Promise<void> {
+        this.#state = State.INITIALIZED
+        this.#executor = await Environment.executor()
+        this.#state = State.READY
     }
 
-    async #await(condition: Function) {
-        return new Promise<void>((resolve): void => {
-            const interval: NodeJS.Timeout | number = setInterval((): void => {
-                if (condition()) {
-                    clearInterval(interval)
-                    resolve()
-                }
+    async #loadAndRun(mode: ThreadMode, transferData: TransferData, threadsToRun: number): Promise<any> {
+        const index: number = await this.#waitInQueue()
+
+        const promises: Promise<void>[] = []
+        while (transferData.pool.length && threadsToRun--) {
+            const thread: Thread = await this.#getThread()
+
+            if (transferData.pool.length) {
+                promises.push(thread.execute(transferData, mode).catch((): void => {
+                    console.error('An error occurred. Please terminate and respawn the threads.')
+                    this.#state = State.ERROR
+                }))
+            }
+        }
+
+        this.#queues.pending.removeByValue(index)
+
+        this.#queues.loaded.push(index)
+
+        await Promise.all(promises)
+    }
+
+    async #waitInQueue(): Promise<number> {
+        const index: number = this.#queues.pending.increment(this.#queues.loaded.last)
+        while ((this.#queues.loaded.highest() ?? 0) + 1 !== index) {
+            await new Promise<void>((resolve): void => {
+                this.#queues.loaded.on(QueueEventType.PUSH, resolve, {once: true})
             })
+        }
+
+        return index
+    }
+
+    async #getThread(): Promise<Thread> {
+        const thread: Thread | undefined = this.#threads.find((thread: Thread): boolean => thread.state === ThreadState.IDLE)
+        if (thread) return thread
+
+        return new Promise((resolve): void => {
+            for (let i = 0; i < this.threadCount; i++) {
+                // Thread is automatically passed and resolved as parameter
+                this.#threads[i].on(ThreadEventType.COMPLETE, resolve, {once: true})
+            }
         })
     }
 
-    async #load(): Promise<void> {
-        Environment.threads()
-        this.#executor = await Environment.executor()
+    async #checkState(): Promise<boolean> {
+        switch (this.#state) {
+            case State.INITIALIZED:
+                console.info('Please run load() first.')
+                return true
 
-        this.#loaded = true
+            case State.ERROR:
+                throw 'An error occurred. Please respawn the threads.'
+
+            case State.READY:
+                return true
+        }
     }
 
-
-    set maxThreadCount(maxThreadsCount: number) {
-        this.#maxThreadCount = Math.max(1, Math.min(maxThreadsCount ?? this.#maxThreadCount, Environment.threads()))
+    get state(): State {
+        return this.#state
     }
 
-    get maxThreadCount(): number {
-        return this.#maxThreadCount
+    get threadStates(): ThreadState[] {
+        return this.#threads.map((thread: Thread): ThreadState => thread.state)
+    }
+
+    get threadCount(): number {
+        return this.#threads.length
     }
 }

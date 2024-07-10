@@ -1,10 +1,10 @@
-import {TransferData} from './Threads'
+import {TransferData} from './Threads.ts'
 
-import ExecutorInterface from './Executor'
+import ExecutorInterface from './Executor.ts'
 
 
 export default interface ThreadInterface {
-    execute(data: TransferData): Promise<any[]>
+    execute(data: TransferData): Promise<void>
 
     terminate: ExecutorInterface['terminate']
 
@@ -23,7 +23,7 @@ export enum Mode {
     SEQUENTIAL = 'sequential'
 }
 
-export enum Event {
+export enum EventType {
     'PROGRESS' = 'progress',
     'COMPLETE' = 'complete',
     'ERROR' = 'error'

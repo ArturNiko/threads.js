@@ -10,7 +10,7 @@ on:
 
 jobs:
   test:
-    name: 🧪 test and deploy 🚀
+    name:  🏗️ Build and 🧪 Test
     runs-on: ubuntu-latest
     strategy:
       matrix:

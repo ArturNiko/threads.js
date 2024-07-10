@@ -1,19 +1,17 @@
 import Threads, {TaskPool} from '../src/index.ts'
 
-describe('#Functionality', () => {
+describe('#Functionality', async () => {
+    if (!window.Worker) window.Worker = Object
+
     const threadCount = 12
-    const threads = new Threads(threadCount)
+    const threads = new Threads()
+    await threads.spawn(threadCount)
 
     const pool = new TaskPool(30)
 
     function square(num = 2) {
         return num * num
     }
-
-    it('Constructing(Threads)', () => {
-        expect(threads.maxThreadCount).toBe(navigator.hardwareConcurrency - 1)
-    })
-
 
     it('Constructing(Pool)', () => {
         expect(pool.pool).toBeInstanceOf(Array)

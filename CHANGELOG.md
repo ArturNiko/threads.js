@@ -52,3 +52,17 @@
 |:---------|:------------------------------------:|
 | Fixes 🐞 | [HOTFIX] Worker internal error fixed |
 | Dev 🛠   |         Updated dependencies         |
+
+
+
+### Version 1.6.8 → 1.7.0
+
+### Date: 10. Jul 2024
+
+
+| Type      |                 Description                 | 
+|:----------|:-------------------------------------------:|
+| Feature ✨ |             Smart thread loader             |
+| Fixes 🐞  |      Fixed internal error occurrences       |
+| API 🛠    | API modifications (Check the documentation) |
+| Dev 🛠    | Some performance improvements (Main thread) | 
